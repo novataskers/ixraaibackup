@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
 
     // 1. Upload Target
     const targetForm = new FormData();
-    targetForm.append('image', base64ToBuffer(targetImage), { filename: 'target.png', contentType: 'image/png' });
+    targetForm.append('file', base64ToBuffer(targetImage), { filename: 'target.png', contentType: 'image/png' });
     
     console.log('Uploading target image to Piktid...');
     const targetResp = await client.post('/api/consistent_identities/upload_target', targetForm, {
@@ -42,9 +42,10 @@ export async function POST(req: NextRequest) {
       throw new Error('No faces detected in target image');
     }
 
-    // Piktid face ID is usually the index in coordinates_list, but can be provided in the object
-    const faceId = coordinates_list[0].FACE_ID !== undefined ? coordinates_list[0].FACE_ID : 
-                  (coordinates_list[0].face_id !== undefined ? coordinates_list[0].face_id : 0);
+    // Piktid face ID is usually the index in coordinates_list
+    // The search result suggests idx_face is the parameter for the target face index
+    const targetFaceIdx = coordinates_list[0].face_id !== undefined ? coordinates_list[0].face_id : 
+                         (coordinates_list[0].FACE_ID !== undefined ? coordinates_list[0].FACE_ID : 0);
 
     // 2. Upload Source Face
     const sourceForm = new FormData();
@@ -55,19 +56,24 @@ export async function POST(req: NextRequest) {
       headers: sourceForm.getHeaders()
     });
 
-    const { identity_name } = sourceResp.data;
+    const identity_name = sourceResp.data.face_name || sourceResp.data.identity_name;
+    if (!identity_name) {
+      console.log('Source Upload Response:', JSON.stringify(sourceResp.data));
+      throw new Error('Failed to get identity name from source image');
+    }
 
     // 3. Generate Swap
     console.log('Starting face swap generation...');
-    await client.post('/api/consistent_identities/generate', {
-      identity_name: identity_name,
+    const genResp = await client.post('/api/consistent_identities/generate', {
       id_image: image_id,
-      id_face: faceId,
-      options: {
-        flag_replace_and_download: true,
-        skin: true
-      }
+      id_face: identity_name,
+      idx_face: targetFaceIdx,
+      flag_replace_and_download: true,
+      skin: true
     });
+
+    const job_id = genResp.data.job_id;
+    console.log('Generation started, job_id:', job_id);
 
     // 4. Poll for results
     console.log('Polling for results...');
@@ -79,33 +85,47 @@ export async function POST(req: NextRequest) {
       attempts++;
       await new Promise(r => setTimeout(r, 3000));
       
-      const pollResp = await client.post('/api/consistent_identities/notification/read', {
-        id_image: image_id
-      });
+      // Try polling by job_id first if available, otherwise fallback to id_image
+      let pollResp;
+      if (job_id) {
+        pollResp = await client.get(`/api/consistent_identities/notification/read?job_id=${job_id}`);
+      } else {
+        pollResp = await client.post('/api/consistent_identities/notification/read', {
+          id_image: image_id
+        });
+      }
       
-      const notifications = Array.isArray(pollResp.data) ? pollResp.data : [];
-      
-      // Look for a completed notification for this image
-      const latestNotification = notifications.find((n: any) => 
-        n.status === 'completed' && (n.id_image === image_id || n.image_id === image_id)
-      );
+      const data = pollResp.data;
+      console.log(`Poll attempt ${attempts} status:`, data.status || 'unknown');
 
-      if (latestNotification) {
-        resultUrl = latestNotification.link_hd || latestNotification.link;
-        // Cleanup notification
-        await client.post('/api/consistent_identities/notification/delete', {
-          id: latestNotification.id,
-          id_image: image_id,
-          f: faceId
-        }).catch(() => {});
+      if (data.status === 'completed' || data.status === 'complete') {
+        resultUrl = data.link_hd || data.link;
         break;
       }
 
-      const failedNotification = notifications.find((n: any) => 
-        n.status === 'failed' && (n.id_image === image_id || n.image_id === image_id)
-      );
-      if (failedNotification) {
+      if (data.status === 'failed' || data.status === 'error') {
         throw new Error('Face swap generation failed on Piktid');
+      }
+
+      // If it's an array (old behavior or fallback)
+      if (Array.isArray(data)) {
+        const latestNotification = data.find((n: any) => 
+          (n.status === 'completed' || n.status === 'complete') && 
+          (n.id_image === image_id || n.image_id === image_id || n.job_id === job_id)
+        );
+
+        if (latestNotification) {
+          resultUrl = latestNotification.link_hd || latestNotification.link;
+          break;
+        }
+
+        const failedNotification = data.find((n: any) => 
+          (n.status === 'failed' || n.status === 'error') && 
+          (n.id_image === image_id || n.image_id === image_id || n.job_id === job_id)
+        );
+        if (failedNotification) {
+          throw new Error('Face swap generation failed on Piktid');
+        }
       }
     }
 

@@ -61,12 +61,12 @@ export async function POST(req: Request) {
     // 2. Call Replicate (fofr/face-to-many)
     console.log('Starting Replicate face-to-many prediction...');
     const prediction = await replicate.predictions.create({
-      version: "a07f4bc7c2f163f478548980327346142c67b938f3219468e21966144e5e786b",
+      version: "a07f252abbbd832009640b27f063ea52d87d7a23a185ca165bec23b5adc8deaf",
       input: {
         image: imageUrl,
         prompt: styleDescription,
         style: "3D", // Default to 3D, prompt will refine it
-        instantid_strength: 0.8,
+        instant_id_strength: 0.8,
         denoising_strength: 0.65,
         negative_prompt: "bad quality, blurry, low resolution, distorted, ugly",
       }

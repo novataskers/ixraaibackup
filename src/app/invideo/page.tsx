@@ -835,8 +835,8 @@ export default function InvideoPage() {
                       <h2 className="text-2xl font-bold text-white">
                         Face Swapper
                       </h2>
-                      <Badge className="bg-red-500/20 text-red-400 border-red-500/30">
-                        Powered by Apify
+                      <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30">
+                        Powered by Hugging Face
                       </Badge>
                     </div>
 

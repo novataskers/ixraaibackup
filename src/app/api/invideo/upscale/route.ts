@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { fal } from '@fal-ai/client';
+import { cloudinary } from '@/lib/cloudinary';
 
 export async function POST(req: NextRequest) {
   try {
@@ -9,29 +9,27 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Image is required' }, { status: 400 });
     }
 
-    // Use Fal AI for upscaling (ESRGAN)
-    // We pass the base64 image directly or use fal.storage.upload if needed
-    // The client handles data URLs automatically
-    const result: any = await fal.subscribe('fal-ai/esrgan', {
-      input: {
-        image_url: image,
-        scale: 4,
-        model: 'RealESRGAN_x4plus',
-      },
+    // Upload to Cloudinary and apply generative upscale
+    // Note: gen_upscale is a generative effect that enhances image resolution
+    const uploadResponse = await cloudinary.uploader.upload(image, {
+      folder: 'upscale',
+      transformation: [
+        { effect: 'gen_upscale' }
+      ]
     });
 
-    if (!result || !result.data || !result.data.image) {
-      throw new Error('Failed to get upscaled image from Fal AI');
+    if (!uploadResponse || !uploadResponse.secure_url) {
+      throw new Error('Failed to get upscaled image from Cloudinary');
     }
 
     return NextResponse.json({ 
       success: true, 
-      output: result.data.image.url,
+      output: uploadResponse.secure_url,
       original: image.startsWith('http') ? image : undefined
     });
 
   } catch (error: any) {
-    console.error('Fal AI Upscale Error:', error);
+    console.error('Cloudinary Upscale Error:', error);
     return NextResponse.json(
       { error: error.message || 'Failed to upscale image' },
       { status: 500 }

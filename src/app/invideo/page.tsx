@@ -69,6 +69,67 @@ export default function InvideoPage() {
   const [upscaleError, setUpscaleError] = useState<string | null>(null);
   const upscaleInputRef = useRef<HTMLInputElement>(null);
 
+  // Face Swapper State
+  const [fsSourceImage, setFsSourceImage] = useState<string | null>(null);
+  const [fsTargetImage, setFsTargetImage] = useState<string | null>(null);
+  const [fsResult, setFsResult] = useState<string | null>(null);
+  const [isFsProcessing, setIsFsProcessing] = useState(false);
+  const [fsError, setFsError] = useState<string | null>(null);
+  const fsSourceRef = useRef<HTMLInputElement>(null);
+  const fsTargetRef = useRef<HTMLInputElement>(null);
+
+  const handleFsSourceUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFsSourceImage(reader.result as string);
+        setFsError(null);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleFsTargetUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFsTargetImage(reader.result as string);
+        setFsError(null);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleFaceSwap = async () => {
+    if (!fsSourceImage || !fsTargetImage) return;
+
+    setIsFsProcessing(true);
+    setFsError(null);
+
+    try {
+      const response = await fetch("/api/invideo/faceswap", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          sourceImage: fsSourceImage, 
+          targetImage: fsTargetImage 
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) throw new Error(data.error || "Failed to swap faces");
+
+      setFsResult(data.output);
+    } catch (err: any) {
+      setFsError(err.message);
+    } finally {
+      setIsFsProcessing(false);
+    }
+  };
+
   const handleGenerateVideo = async () => {
     if (!prompt) return;
 
@@ -604,18 +665,139 @@ export default function InvideoPage() {
                     </div>
                   )}
 
-                  {/* Other tabs */}
-                  {activeTab !== "text-video" && activeTab !== "background" && activeTab !== "upscale" && (
+                    {activeTab === "faceswap" && (
+                      <div className="space-y-8 flex-1 flex flex-col">
+                        <div className="flex items-center justify-between mb-2">
+                          <h2 className="text-2xl font-bold text-white">Face Swapper</h2>
+                          <Badge className="bg-red-500/20 text-red-400 border-red-500/30">Powered by Segmind</Badge>
+                        </div>
 
-                  <div className="flex flex-col items-center justify-center flex-1 text-center">
-                    <div className="w-20 h-20 rounded-full bg-zinc-800/50 flex items-center justify-center mb-6">
-                      {React.createElement(features.find(f => f.id === activeTab)?.icon || Video, { className: "w-10 h-10 text-zinc-400" })}
-                    </div>
-                    <h3 className="text-2xl font-bold text-white mb-2">{features.find(f => f.id === activeTab)?.name}</h3>
-                    <p className="text-zinc-500 max-w-sm mb-8">{features.find(f => f.id === activeTab)?.description}</p>
-                    <Button className="bg-purple-600 hover:bg-purple-700 text-white">Open Studio</Button>
-                  </div>
-                )}
+                        <div className="flex-1 flex flex-col gap-6">
+                          {fsResult ? (
+                            <div className="space-y-4 flex-1 flex flex-col">
+                              <div className="flex-1 relative aspect-square rounded-2xl overflow-hidden bg-black border border-zinc-800">
+                                <img src={fsResult} alt="Face Swap Result" className="w-full h-full object-contain" />
+                                <div className="absolute top-4 right-4 transition-opacity">
+                                  <Button 
+                                    size="sm" 
+                                    className="bg-red-600 hover:bg-red-700 text-white shadow-lg"
+                                    onClick={() => downloadFile(fsResult, "swapped-face.png")}
+                                  >
+                                    <Download className="w-4 h-4 mr-2" /> Download
+                                  </Button>
+                                </div>
+                              </div>
+                              <div className="flex justify-between items-center">
+                                <div className="flex items-center gap-2 text-green-400">
+                                  <CheckCircle2 className="w-5 h-5" />
+                                  <span className="text-sm font-medium">Face Swap Complete</span>
+                                </div>
+                                <Button 
+                                  variant="outline" 
+                                  onClick={() => {
+                                    setFsResult(null);
+                                    setFsSourceImage(null);
+                                    setFsTargetImage(null);
+                                  }}
+                                  className="border-zinc-800 text-white hover:bg-zinc-800"
+                                >
+                                  Swap Another
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1">
+                              {/* Source Image (The face to use) */}
+                              <div className="space-y-4">
+                                <Label className="text-zinc-400 uppercase text-[10px] tracking-widest font-bold">Source (Face to use)</Label>
+                                <div 
+                                  onClick={() => fsSourceRef.current?.click()}
+                                  className={cn(
+                                    "relative aspect-square rounded-2xl overflow-hidden border-2 border-dashed transition-all cursor-pointer flex flex-col items-center justify-center",
+                                    fsSourceImage ? "border-red-500/50 bg-red-500/5" : "border-zinc-800 bg-zinc-950/30 hover:bg-zinc-900/30"
+                                  )}
+                                >
+                                  <input 
+                                    type="file" 
+                                    ref={fsSourceRef} 
+                                    className="hidden" 
+                                    accept="image/*" 
+                                    onChange={handleFsSourceUpload}
+                                  />
+                                  {fsSourceImage ? (
+                                    <img src={fsSourceImage} alt="Source" className="w-full h-full object-cover" />
+                                  ) : (
+                                    <div className="text-center p-6">
+                                      <UserCircle2 className="w-10 h-10 text-zinc-600 mx-auto mb-2" />
+                                      <p className="text-xs text-zinc-500">Upload Face</p>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Target Image (The body to put face on) */}
+                              <div className="space-y-4">
+                                <Label className="text-zinc-400 uppercase text-[10px] tracking-widest font-bold">Target (Image to swap into)</Label>
+                                <div 
+                                  onClick={() => fsTargetRef.current?.click()}
+                                  className={cn(
+                                    "relative aspect-square rounded-2xl overflow-hidden border-2 border-dashed transition-all cursor-pointer flex flex-col items-center justify-center",
+                                    fsTargetImage ? "border-red-500/50 bg-red-500/5" : "border-zinc-800 bg-zinc-950/30 hover:bg-zinc-900/30"
+                                  )}
+                                >
+                                  <input 
+                                    type="file" 
+                                    ref={fsTargetRef} 
+                                    className="hidden" 
+                                    accept="image/*" 
+                                    onChange={handleFsTargetUpload}
+                                  />
+                                  {fsTargetImage ? (
+                                    <img src={fsTargetImage} alt="Target" className="w-full h-full object-cover" />
+                                  ) : (
+                                    <div className="text-center p-6">
+                                      <ImageIcon className="w-10 h-10 text-zinc-600 mx-auto mb-2" />
+                                      <p className="text-xs text-zinc-500">Upload Target</p>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {fsError && (
+                            <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 flex items-center gap-3 text-red-400">
+                              <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                              <p className="text-sm">{fsError}</p>
+                            </div>
+                          )}
+
+                          {!fsResult && (
+                            <Button 
+                              onClick={handleFaceSwap}
+                              disabled={!fsSourceImage || !fsTargetImage || isFsProcessing}
+                              className="h-14 gap-2 bg-red-600 hover:bg-red-700 text-white font-bold"
+                            >
+                              {isFsProcessing ? (
+                                <>
+                                  <Loader2 className="w-5 h-5 animate-spin" />
+                                  Processing Swap...
+                                </>
+                              ) : (
+                                <>
+                                  <RefreshCcw className="w-5 h-5" />
+                                  Start Face Swap
+                                </>
+                              )}
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Other tabs */}
+                    {activeTab !== "text-video" && activeTab !== "background" && activeTab !== "upscale" && activeTab !== "faceswap" && (
+
               </motion.div>
             </AnimatePresence>
           </Card>

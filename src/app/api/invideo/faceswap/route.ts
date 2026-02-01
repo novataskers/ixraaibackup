@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { ApifyClient } from 'apify-client';
+import { cloudinary } from '@/lib/cloudinary';
 
 export async function POST(req: NextRequest) {
   try {
@@ -8,63 +10,59 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Both source and target images are required' }, { status: 400 });
     }
 
-    const apiKey = process.env.SEGMIND_API_KEY;
-    if (!apiKey) {
-      return NextResponse.json({ error: 'Segmind API key not configured' }, { status: 500 });
+    const apifyToken = process.env.APIFY_TOKEN;
+    if (!apifyToken) {
+      return NextResponse.json({ error: 'Apify API token not configured' }, { status: 500 });
     }
 
-    // Strip data URL prefix if present
-    const cleanSource = sourceImage.replace(/^data:image\/\w+;base64,/, '');
-    const cleanTarget = targetImage.replace(/^data:image\/\w+;base64,/, '');
+    // Helper function to upload base64 to Cloudinary and get URL
+    const uploadToCloudinary = async (base64: string) => {
+      try {
+        const uploadResponse = await cloudinary.uploader.upload(base64, {
+          folder: 'faceswap',
+        });
+        return uploadResponse.secure_url;
+      } catch (error) {
+        console.error('Cloudinary upload error:', error);
+        throw new Error('Failed to process image for swapping');
+      }
+    };
 
-    // Segmind Faceswap V4
-    const response = await fetch('https://api.segmind.com/v1/faceswap-v4', {
-      method: 'POST',
-      headers: {
-        'x-api-key': apiKey,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        source_image: cleanSource,
-        target_image: cleanTarget,
-        model_type: 'speed',
-        swap_type: 'head',
-        style_type: 'normal',
-        image_format: 'png',
-        image_quality: 90,
-        hardware: 'fast',
-        base64: true,
-      }),
+    // Upload images to Cloudinary to get HTTPS URLs for Apify
+    const [sourceUrl, targetUrl] = await Promise.all([
+      uploadToCloudinary(sourceImage),
+      uploadToCloudinary(targetImage)
+    ]);
+
+    const client = new ApifyClient({
+      token: apifyToken,
     });
 
-    if (!response.ok) {
-      if (response.status === 406) {
-        throw new Error('Insufficient Segmind credits. Please top up your account at cloud.segmind.com');
-      }
-      const errorText = await response.text();
-      let errorMessage = `Segmind API error: ${response.status}`;
-      try {
-        const errorJson = JSON.parse(errorText);
-        errorMessage = errorJson.message || errorMessage;
-      } catch (e) {
-        errorMessage = errorText || errorMessage;
-      }
-      throw new Error(errorMessage);
+    // Run the Apify actor synchronously
+    const run = await client.actor('akash9078/ai-face-swap').call({
+      sourceUrl,
+      targetUrl,
+      outputFormat: 'PNG',
+    });
+
+    if (run.status !== 'SUCCEEDED') {
+      throw new Error(`Apify actor failed with status: ${run.status}`);
     }
 
-    const data = await response.json();
+    // Get the results from the dataset
+    const { items } = await client.dataset(run.defaultDatasetId).listItems();
     
-    if (!data.output || !data.output[0]) {
-      throw new Error('Failed to get output from Segmind');
+    if (!items || items.length === 0 || !items[0].imageUrl) {
+      throw new Error('Failed to get output from Apify');
     }
 
     return NextResponse.json({ 
       success: true, 
-      output: data.output[0]
+      output: items[0].imageUrl
     });
 
   } catch (error: any) {
-    console.error('Segmind Face Swap Error:', error);
+    console.error('Apify Face Swap Error:', error);
     return NextResponse.json(
       { error: error.message || 'Failed to swap face' },
       { status: 500 }

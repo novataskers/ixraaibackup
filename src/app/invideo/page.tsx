@@ -836,7 +836,7 @@ export default function InvideoPage() {
                         Face Swapper
                       </h2>
                       <Badge className="bg-red-500/20 text-red-400 border-red-500/30">
-                        Powered by Segmind
+                        Powered by Apify
                       </Badge>
                     </div>
 

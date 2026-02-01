@@ -22,8 +22,9 @@ import {
   CheckCircle2,
   AlertCircle,
   X,
-  RefreshCcw,
-} from "lucide-react";
+    RefreshCcw,
+    Shield,
+  } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -128,9 +129,14 @@ export default function InvideoPage() {
       streamRef.current = stream;
       chunksRef.current = [];
       
-      const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: 'video/webm;codecs=vp9'
-      });
+      // Determine supported mime type
+      const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9') 
+        ? 'video/webm;codecs=vp9' 
+        : MediaRecorder.isTypeSupported('video/webm') 
+          ? 'video/webm' 
+          : 'video/mp4';
+
+      const mediaRecorder = new MediaRecorder(stream, { mimeType });
       
       mediaRecorder.ondataavailable = (e) => {
         if (e.data.size > 0) {
@@ -139,23 +145,38 @@ export default function InvideoPage() {
       };
       
       mediaRecorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: 'video/webm' });
+        const blob = new Blob(chunksRef.current, { type: mimeType });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
+        a.style.display = 'none';
         a.href = url;
-        a.download = `recording-${new Date().getTime()}.webm`;
+        const extension = mimeType.includes('mp4') ? 'mp4' : 'webm';
+        a.download = `screen-recording-${new Date().getTime()}.${extension}`;
+        document.body.appendChild(a);
         a.click();
-        URL.revokeObjectURL(url);
+        
+        // Use a timeout to ensure the download is triggered before revoking
+        setTimeout(() => {
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        }, 100);
         
         // Cleanup stream
-        stream.getTracks().forEach(track => track.stop());
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach(track => track.stop());
+          streamRef.current = null;
+        }
+        
         setIsRecording(false);
         setRecordingDuration(0);
-        if (timerRef.current) clearInterval(timerRef.current);
+        if (timerRef.current) {
+          clearInterval(timerRef.current);
+          timerRef.current = null;
+        }
       };
       
       mediaRecorderRef.current = mediaRecorder;
-      mediaRecorder.start();
+      mediaRecorder.start(1000); // Collect data every second for safety
       setIsRecording(true);
       
       // Start timer
@@ -171,6 +192,7 @@ export default function InvideoPage() {
       
     } catch (err) {
       console.error("Error starting screen recording:", err);
+      setIsRecording(false);
     }
   };
 

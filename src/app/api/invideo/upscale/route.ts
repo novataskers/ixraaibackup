@@ -10,11 +10,11 @@ export async function POST(req: NextRequest) {
     }
 
     // Upload to Cloudinary and apply generative upscale
-    // Note: gen_upscale is a generative effect that enhances image resolution
+    // Note: 'upscale' is the Cloudinary AI effect that enhances image resolution
     const uploadResponse = await cloudinary.uploader.upload(image, {
       folder: 'upscale',
       transformation: [
-        { effect: 'gen_upscale' }
+        { effect: 'upscale' }
       ]
     });
 

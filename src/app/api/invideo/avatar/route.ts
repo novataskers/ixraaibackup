@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import Replicate from 'replicate';
 
 async function uploadToSupabase(buffer: Buffer | ArrayBuffer, fileName: string, contentType: string) {
   const supabase = createClient(
@@ -41,6 +42,10 @@ export async function POST(req: Request) {
       }, { status: 500 });
     }
 
+    const replicate = new Replicate({
+      auth: replicateToken,
+    });
+
     // 1. Handle Image (if base64)
     let imageUrl = image;
     if (image.startsWith('data:image')) {
@@ -54,33 +59,23 @@ export async function POST(req: Request) {
     }
 
     // 2. Call Replicate (fofr/face-to-many)
-    // This model is excellent for turning a face into various stylized avatars
     console.log('Starting Replicate face-to-many prediction...');
-    const replicateResponse = await fetch('https://api.replicate.com/v1/predictions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Token ${replicateToken}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        version: "a07f4bc7c2f163f478548980327346142c67b938f3219468e21966144e5e786b",
-        input: {
-          image: imageUrl,
-          prompt: styleDescription,
-          style: "3D", // Default to 3D, prompt will refine it
-          instantid_strength: 0.8,
-          denoising_strength: 0.65,
-          negative_prompt: "bad quality, blurry, low resolution, distorted, ugly",
-        }
-      }),
+    const prediction = await replicate.predictions.create({
+      version: "a07f4bc7c2f163f478548980327346142c67b938f3219468e21966144e5e786b",
+      input: {
+        image: imageUrl,
+        prompt: styleDescription,
+        style: "3D", // Default to 3D, prompt will refine it
+        instantid_strength: 0.8,
+        denoising_strength: 0.65,
+        negative_prompt: "bad quality, blurry, low resolution, distorted, ugly",
+      }
     });
 
-    if (!replicateResponse.ok) {
-      const errorData = await replicateResponse.json();
-      throw new Error(`Replicate Error: ${errorData.detail || 'Failed to start avatar generation'}`);
+    if (prediction.error) {
+      throw new Error(`Replicate Error: ${prediction.error}`);
     }
 
-    const prediction = await replicateResponse.json();
     console.log('Replicate prediction started:', prediction.id);
 
     return NextResponse.json({

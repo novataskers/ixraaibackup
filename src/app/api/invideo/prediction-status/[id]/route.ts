@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { activeJobs } from "@/lib/video-jobs";
+import Replicate from "replicate";
 
 export async function GET(
   req: Request,
@@ -78,19 +79,11 @@ export async function GET(
         return NextResponse.json({ error: "REPLICATE_API_TOKEN not configured" }, { status: 500 });
       }
 
-      const response = await fetch(`https://api.replicate.com/v1/predictions/${predictionId}`, {
-        headers: {
-          "Authorization": `Token ${replicateToken}`,
-          "Content-Type": "application/json",
-        },
+      const replicate = new Replicate({
+        auth: replicateToken,
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || "Failed to fetch Replicate status");
-      }
-
-      const prediction = await response.json();
+      const prediction = await replicate.predictions.get(predictionId);
       console.log(`Replicate status check for ${predictionId}:`, prediction.status);
 
       let normalizedStatus = "processing";

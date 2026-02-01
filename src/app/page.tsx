@@ -93,9 +93,9 @@ export default function Home() {
                   <h3 className="text-2xl font-bold text-white mb-3 flex items-center gap-2">
                     Invideo Hub <ArrowRight className="w-5 h-5 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
                   </h3>
-                    <p className="text-zinc-400 mb-6 line-clamp-2">
-                      Premium video & image generation. Powered by Fal.ai Studio.
-                    </p>
+                  <p className="text-zinc-400 mb-6 line-clamp-2">
+                    Premium video & image generation. Powered by state-of-the-art AI engines.
+                  </p>
                   <ul className="space-y-2 mb-8">
                     {["Text to Video", "AI Avatars", "Model Suite"].map((feature) => (
                       <li key={feature} className="text-xs text-zinc-500 flex items-center gap-2">

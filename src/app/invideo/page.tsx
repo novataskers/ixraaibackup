@@ -52,9 +52,9 @@ const features = [
   },
   {
     id: "avatars",
-    name: "AI Avatars",
+    name: "AI Avatar Creator",
     icon: UserSquare2,
-    description: "Realistic avatars with natural voice synthesis.",
+    description: "Turn your photo into a stylized AI avatar.",
     color: "text-green-400",
   },
   {
@@ -106,8 +106,7 @@ export default function InvideoPage() {
 
   // AI Avatar State
   const [avatarImage, setAvatarImage] = useState<string | null>(null);
-  const [avatarText, setAvatarText] = useState("");
-  const [avatarVoice, setAvatarVoice] = useState("Serena");
+  const [avatarStyle, setAvatarStyle] = useState("");
   const [isGeneratingAvatar, setIsGeneratingAvatar] = useState(false);
   const [avatarResult, setAvatarResult] = useState<string | null>(null);
   const [avatarStatus, setAvatarStatus] = useState<string | null>(null);
@@ -382,12 +381,12 @@ export default function InvideoPage() {
   };
 
   const handleGenerateAvatar = async () => {
-    if (!avatarImage || !avatarText) return;
+    if (!avatarImage || !avatarStyle) return;
 
     setIsGeneratingAvatar(true);
     setAvatarError(null);
     setAvatarResult(null);
-    setAvatarStatus("Generating voice & starting animation...");
+    setAvatarStatus("Analyzing face & preparing style...");
 
     try {
       const response = await fetch("/api/invideo/avatar", {
@@ -395,8 +394,7 @@ export default function InvideoPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           image: avatarImage,
-          text: avatarText,
-          voiceName: avatarVoice,
+          styleDescription: avatarStyle,
         }),
       });
 
@@ -406,7 +404,7 @@ export default function InvideoPage() {
         throw new Error(data.details || data.error || "Failed to start generation");
 
       const taskId = data.id;
-      setAvatarStatus("Animating avatar (this takes 1-3 minutes)...");
+      setAvatarStatus("Generating stylized avatar (30-60 seconds)...");
 
       const checkAvatarStatus = async () => {
         try {
@@ -416,7 +414,11 @@ export default function InvideoPage() {
           if (!statusRes.ok) throw new Error(statusData.error || "Failed to check status");
 
           if (statusData.status === "succeeded") {
-            setAvatarResult(statusData.output);
+            // Replicate output can be an array of URLs or a single URL
+            const output = statusData.output;
+            const finalUrl = Array.isArray(output) ? output[0] : output;
+            
+            setAvatarResult(finalUrl);
             setIsGeneratingAvatar(false);
             setAvatarStatus("Success!");
           } else if (statusData.status === "failed") {
@@ -1027,22 +1029,20 @@ export default function InvideoPage() {
                     <div className="space-y-8 flex-1 flex flex-col">
                       <div className="flex items-center justify-between mb-2">
                         <h2 className="text-2xl font-bold text-white">
-                          AI Avatar Video
+                          AI Avatar Creator
                         </h2>
                         <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
-                          ElevenLabs + SadTalker
+                          Face-to-Many Style Engine
                         </Badge>
                       </div>
 
                       <div className="flex-1 flex flex-col gap-6">
                         {avatarResult ? (
                           <div className="space-y-4 flex-1">
-                            <div className="aspect-video rounded-2xl overflow-hidden bg-black relative group max-h-[400px]">
-                              <video
+                            <div className="aspect-square rounded-2xl overflow-hidden bg-zinc-950 border border-zinc-800 relative group max-h-[500px] mx-auto">
+                              <img
                                 src={avatarResult}
-                                controls
-                                autoPlay
-                                loop
+                                alt="AI Avatar"
                                 className="w-full h-full object-contain"
                               />
                               <div className="absolute top-4 right-4 transition-opacity">
@@ -1050,7 +1050,7 @@ export default function InvideoPage() {
                                   size="sm"
                                   className="bg-green-600 hover:bg-green-700 text-white shadow-lg"
                                   onClick={() =>
-                                    downloadFile(avatarResult, "ai-avatar-video.mp4")
+                                    downloadFile(avatarResult, "ai-avatar.png")
                                   }
                                 >
                                   <Download className="w-4 h-4 mr-2" /> Download
@@ -1062,7 +1062,7 @@ export default function InvideoPage() {
                               className="w-full border-zinc-800 text-white"
                               onClick={() => {
                                 setAvatarResult(null);
-                                setAvatarText("");
+                                setAvatarStyle("");
                               }}
                             >
                               Create Another
@@ -1073,7 +1073,7 @@ export default function InvideoPage() {
                             <div className="space-y-6">
                               <div className="space-y-3">
                                 <Label className="text-zinc-400 uppercase text-[10px] tracking-widest font-bold">
-                                  1. Upload Face Image
+                                  1. Upload Your Photo
                                 </Label>
                                 <div 
                                   onClick={() => avatarInputRef.current?.click()}
@@ -1107,39 +1107,28 @@ export default function InvideoPage() {
                             </div>
 
                             <div className="space-y-6 flex flex-col">
-                              <div className="space-y-3">
+                              <div className="space-y-3 flex-1">
                                 <Label className="text-zinc-400 uppercase text-[10px] tracking-widest font-bold">
-                                  2. Select Voice
+                                  2. Describe Your Style
                                 </Label>
-                                <div className="grid grid-cols-3 gap-2">
-                                  {['Serena', 'Marcus', 'Luna'].map((v) => (
+                                <textarea
+                                  className="w-full h-40 bg-zinc-950/50 border border-zinc-800 rounded-xl p-4 text-white focus:outline-none focus:ring-2 focus:ring-green-500/50 transition-all resize-none text-sm"
+                                  placeholder="e.g. 3D animated character, Pixar style, Cyberpunk warrior, Medieval knight, Studio Ghibli anime..."
+                                  value={avatarStyle}
+                                  onChange={(e) => setAvatarStyle(e.target.value)}
+                                  disabled={isGeneratingAvatar}
+                                />
+                                <div className="flex flex-wrap gap-2 mt-2">
+                                  {['3D Pixar', 'Anime', 'Cyberpunk', 'GTA Style', 'Claymation'].map((s) => (
                                     <button
-                                      key={v}
-                                      onClick={() => setAvatarVoice(v)}
-                                      className={cn(
-                                        "px-3 py-2 rounded-lg text-xs font-bold transition-all border",
-                                        avatarVoice === v 
-                                          ? "bg-green-500/10 border-green-500/50 text-green-400" 
-                                          : "bg-zinc-950 border-zinc-800 text-zinc-500 hover:border-zinc-700"
-                                      )}
+                                      key={s}
+                                      onClick={() => setAvatarStyle(s)}
+                                      className="px-3 py-1 rounded-full bg-zinc-800 text-[10px] text-zinc-400 hover:bg-zinc-700 transition-colors"
                                     >
-                                      {v}
+                                      {s}
                                     </button>
                                   ))}
                                 </div>
-                              </div>
-
-                              <div className="space-y-3 flex-1">
-                                <Label className="text-zinc-400 uppercase text-[10px] tracking-widest font-bold">
-                                  3. What should they say?
-                                </Label>
-                                <textarea
-                                  className="w-full h-32 bg-zinc-950/50 border border-zinc-800 rounded-xl p-4 text-white focus:outline-none focus:ring-2 focus:ring-green-500/50 transition-all resize-none text-sm"
-                                  placeholder="Type the message for your AI avatar..."
-                                  value={avatarText}
-                                  onChange={(e) => setAvatarText(e.target.value)}
-                                  disabled={isGeneratingAvatar}
-                                />
                               </div>
 
                               {avatarError && (
@@ -1158,10 +1147,10 @@ export default function InvideoPage() {
                                 )}
                                 <Button
                                   onClick={handleGenerateAvatar}
-                                  disabled={isGeneratingAvatar || !avatarImage || !avatarText}
+                                  disabled={isGeneratingAvatar || !avatarImage || !avatarStyle}
                                   className="w-full h-12 rounded-xl bg-green-600 hover:bg-green-700 text-white font-bold gap-2 shadow-lg shadow-green-900/20"
                                 >
-                                  {isGeneratingAvatar ? "Processing..." : "Generate Avatar Video"}
+                                  {isGeneratingAvatar ? "Processing..." : "Create AI Avatar"}
                                 </Button>
                               </div>
                             </div>

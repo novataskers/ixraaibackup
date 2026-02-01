@@ -42,6 +42,7 @@
     "@supabase/supabase-js": "^2.90.1",
     "@types/archiver": "^7.0.0",
     "@ybd-project/ytdl-core": "^6.0.8",
+    "apify-client": "^2.22.0",
     "archiver": "^7.0.1",
     "class-variance-authority": "^0.7.1",
     "cloudinary": "^2.9.0",

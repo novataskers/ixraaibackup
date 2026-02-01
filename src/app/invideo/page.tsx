@@ -104,6 +104,16 @@ export default function InvideoPage() {
   const [upscaleError, setUpscaleError] = useState<string | null>(null);
   const upscaleInputRef = useRef<HTMLInputElement>(null);
 
+  // AI Avatar State
+  const [avatarImage, setAvatarImage] = useState<string | null>(null);
+  const [avatarText, setAvatarText] = useState("");
+  const [avatarVoice, setAvatarVoice] = useState("Serena");
+  const [isGeneratingAvatar, setIsGeneratingAvatar] = useState(false);
+  const [avatarResult, setAvatarResult] = useState<string | null>(null);
+  const [avatarStatus, setAvatarStatus] = useState<string | null>(null);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+
   // Screen Recorder State
   const [isRecording, setIsRecording] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
@@ -355,6 +365,75 @@ export default function InvideoPage() {
       setUpscaleError(err.message);
     } finally {
       setIsUpscaling(false);
+    }
+  };
+
+  const handleAvatarImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAvatarImage(reader.result as string);
+        setAvatarResult(null);
+        setAvatarError(null);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleGenerateAvatar = async () => {
+    if (!avatarImage || !avatarText) return;
+
+    setIsGeneratingAvatar(true);
+    setAvatarError(null);
+    setAvatarResult(null);
+    setAvatarStatus("Generating voice & starting animation...");
+
+    try {
+      const response = await fetch("/api/invideo/avatar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          image: avatarImage,
+          text: avatarText,
+          voiceName: avatarVoice,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok)
+        throw new Error(data.details || data.error || "Failed to start generation");
+
+      const taskId = data.id;
+      setAvatarStatus("Animating avatar (this takes 1-3 minutes)...");
+
+      const checkAvatarStatus = async () => {
+        try {
+          const statusRes = await fetch(`/api/invideo/prediction-status/${taskId}`);
+          const statusData = await statusRes.json();
+
+          if (!statusRes.ok) throw new Error(statusData.error || "Failed to check status");
+
+          if (statusData.status === "succeeded") {
+            setAvatarResult(statusData.output);
+            setIsGeneratingAvatar(false);
+            setAvatarStatus("Success!");
+          } else if (statusData.status === "failed") {
+            throw new Error(statusData.error || "Generation failed");
+          } else {
+            setTimeout(checkAvatarStatus, 5000);
+          }
+        } catch (pollErr: any) {
+          setAvatarError(pollErr.message);
+          setIsGeneratingAvatar(false);
+        }
+      };
+
+      checkAvatarStatus();
+    } catch (err: any) {
+      setAvatarError(err.message);
+      setIsGeneratingAvatar(false);
     }
   };
 
@@ -944,11 +1023,159 @@ export default function InvideoPage() {
                     </div>
                   )}
 
-                  {/* Other tabs */}
+                  {activeTab === "avatars" && (
+                    <div className="space-y-8 flex-1 flex flex-col">
+                      <div className="flex items-center justify-between mb-2">
+                        <h2 className="text-2xl font-bold text-white">
+                          AI Avatar Video
+                        </h2>
+                        <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
+                          ElevenLabs + SadTalker
+                        </Badge>
+                      </div>
+
+                      <div className="flex-1 flex flex-col gap-6">
+                        {avatarResult ? (
+                          <div className="space-y-4 flex-1">
+                            <div className="aspect-video rounded-2xl overflow-hidden bg-black relative group max-h-[400px]">
+                              <video
+                                src={avatarResult}
+                                controls
+                                autoPlay
+                                loop
+                                className="w-full h-full object-contain"
+                              />
+                              <div className="absolute top-4 right-4 transition-opacity">
+                                <Button
+                                  size="sm"
+                                  className="bg-green-600 hover:bg-green-700 text-white shadow-lg"
+                                  onClick={() =>
+                                    downloadFile(avatarResult, "ai-avatar-video.mp4")
+                                  }
+                                >
+                                  <Download className="w-4 h-4 mr-2" /> Download
+                                </Button>
+                              </div>
+                            </div>
+                            <Button
+                              variant="outline"
+                              className="w-full border-zinc-800 text-white"
+                              onClick={() => {
+                                setAvatarResult(null);
+                                setAvatarText("");
+                              }}
+                            >
+                              Create Another
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 flex-1">
+                            <div className="space-y-6">
+                              <div className="space-y-3">
+                                <Label className="text-zinc-400 uppercase text-[10px] tracking-widest font-bold">
+                                  1. Upload Face Image
+                                </Label>
+                                <div 
+                                  onClick={() => avatarInputRef.current?.click()}
+                                  className={cn(
+                                    "aspect-square rounded-2xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all overflow-hidden relative",
+                                    avatarImage ? "border-green-500/50" : "border-zinc-800 hover:bg-zinc-900/50"
+                                  )}
+                                >
+                                  <input 
+                                    type="file" 
+                                    ref={avatarInputRef} 
+                                    className="hidden" 
+                                    accept="image/*" 
+                                    onChange={handleAvatarImageUpload} 
+                                  />
+                                  {avatarImage ? (
+                                    <>
+                                      <img src={avatarImage} className="w-full h-full object-cover" />
+                                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                                        <p className="text-white text-xs font-bold uppercase">Change Image</p>
+                                      </div>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <UserSquare2 className="w-10 h-10 text-zinc-600 mb-2" />
+                                      <p className="text-xs text-zinc-500 font-medium">Clear Frontal Portrait</p>
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="space-y-6 flex flex-col">
+                              <div className="space-y-3">
+                                <Label className="text-zinc-400 uppercase text-[10px] tracking-widest font-bold">
+                                  2. Select Voice
+                                </Label>
+                                <div className="grid grid-cols-3 gap-2">
+                                  {['Serena', 'Marcus', 'Luna'].map((v) => (
+                                    <button
+                                      key={v}
+                                      onClick={() => setAvatarVoice(v)}
+                                      className={cn(
+                                        "px-3 py-2 rounded-lg text-xs font-bold transition-all border",
+                                        avatarVoice === v 
+                                          ? "bg-green-500/10 border-green-500/50 text-green-400" 
+                                          : "bg-zinc-950 border-zinc-800 text-zinc-500 hover:border-zinc-700"
+                                      )}
+                                    >
+                                      {v}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+
+                              <div className="space-y-3 flex-1">
+                                <Label className="text-zinc-400 uppercase text-[10px] tracking-widest font-bold">
+                                  3. What should they say?
+                                </Label>
+                                <textarea
+                                  className="w-full h-32 bg-zinc-950/50 border border-zinc-800 rounded-xl p-4 text-white focus:outline-none focus:ring-2 focus:ring-green-500/50 transition-all resize-none text-sm"
+                                  placeholder="Type the message for your AI avatar..."
+                                  value={avatarText}
+                                  onChange={(e) => setAvatarText(e.target.value)}
+                                  disabled={isGeneratingAvatar}
+                                />
+                              </div>
+
+                              {avatarError && (
+                                <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 flex items-center gap-2 text-red-400 text-xs">
+                                  <AlertCircle className="w-4 h-4" />
+                                  <p>{avatarError}</p>
+                                </div>
+                              )}
+
+                              <div className="mt-auto">
+                                {isGeneratingAvatar && (
+                                  <div className="flex items-center justify-center gap-2 text-green-400 mb-3">
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                    <span className="text-xs font-medium animate-pulse">{avatarStatus}</span>
+                                  </div>
+                                )}
+                                <Button
+                                  onClick={handleGenerateAvatar}
+                                  disabled={isGeneratingAvatar || !avatarImage || !avatarText}
+                                  className="w-full h-12 rounded-xl bg-green-600 hover:bg-green-700 text-white font-bold gap-2 shadow-lg shadow-green-900/20"
+                                >
+                                  {isGeneratingAvatar ? "Processing..." : "Generate Avatar Video"}
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   {activeTab !== "text-video" &&
                     activeTab !== "background" &&
                     activeTab !== "upscale" && 
-                    activeTab !== "recorder" && (
+                    activeTab !== "recorder" &&
+                    activeTab !== "avatars" && (
                     <div className="flex-1 flex flex-col items-center justify-center text-center p-12">
                       <div className="w-20 h-20 rounded-full bg-zinc-800 flex items-center justify-center mb-6">
                         <Zap className="w-10 h-10 text-zinc-600" />

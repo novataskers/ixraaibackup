@@ -70,6 +70,52 @@ export async function GET(
       });
     }
 
+    if (id.startsWith("replicate_")) {
+      const predictionId = id.replace("replicate_", "");
+      const replicateToken = process.env.REPLICATE_API_TOKEN;
+
+      if (!replicateToken) {
+        return NextResponse.json({ error: "REPLICATE_API_TOKEN not configured" }, { status: 500 });
+      }
+
+      const response = await fetch(`https://api.replicate.com/v1/predictions/${predictionId}`, {
+        headers: {
+          "Authorization": `Token ${replicateToken}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || "Failed to fetch Replicate status");
+      }
+
+      const prediction = await response.json();
+      console.log(`Replicate status check for ${predictionId}:`, prediction.status);
+
+      let normalizedStatus = "processing";
+      let output = null;
+      let error = null;
+
+      if (prediction.status === "succeeded") {
+        normalizedStatus = "succeeded";
+        output = prediction.output;
+      } else if (prediction.status === "failed") {
+        normalizedStatus = "failed";
+        error = prediction.error || "Generation failed on Replicate";
+      } else if (prediction.status === "canceled") {
+        normalizedStatus = "failed";
+        error = "Generation was canceled";
+      }
+
+      return NextResponse.json({
+        status: normalizedStatus,
+        output,
+        error,
+        success: true,
+      });
+    }
+
     if (!id.startsWith("1min_")) {
       return NextResponse.json({ error: "Invalid prediction ID" }, { status: 400 });
     }

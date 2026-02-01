@@ -110,6 +110,82 @@ export default function InvideoPage() {
   const [upscaleError, setUpscaleError] = useState<string | null>(null);
   const upscaleInputRef = useRef<HTMLInputElement>(null);
 
+  // Screen Recorder State
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingDuration, setRecordingDuration] = useState(0);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getDisplayMedia({
+        video: { frameRate: { ideal: 30 } },
+        audio: true
+      });
+      
+      streamRef.current = stream;
+      chunksRef.current = [];
+      
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: 'video/webm;codecs=vp9'
+      });
+      
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          chunksRef.current.push(e.data);
+        }
+      };
+      
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(chunksRef.current, { type: 'video/webm' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `recording-${new Date().getTime()}.webm`;
+        a.click();
+        URL.revokeObjectURL(url);
+        
+        // Cleanup stream
+        stream.getTracks().forEach(track => track.stop());
+        setIsRecording(false);
+        setRecordingDuration(0);
+        if (timerRef.current) clearInterval(timerRef.current);
+      };
+      
+      mediaRecorderRef.current = mediaRecorder;
+      mediaRecorder.start();
+      setIsRecording(true);
+      
+      // Start timer
+      setRecordingDuration(0);
+      timerRef.current = setInterval(() => {
+        setRecordingDuration(prev => prev + 1);
+      }, 1000);
+
+      // Handle stream end (user clicks "Stop sharing" in browser)
+      stream.getVideoTracks()[0].onended = () => {
+        stopRecording();
+      };
+      
+    } catch (err) {
+      console.error("Error starting screen recording:", err);
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+    }
+  };
+
+  const formatDuration = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
   const handleGenerateVideo = async () => {
     if (!prompt) return;
 
@@ -605,165 +681,259 @@ export default function InvideoPage() {
                   </div>
                 )}
 
-                {activeTab === "upscale" && (
-                  <div className="space-y-8 flex-1 flex flex-col">
-                    <div className="flex items-center justify-between mb-2">
-                      <h2 className="text-2xl font-bold text-white">
-                        AI Image Upscaler
-                      </h2>
-                      <Badge className="bg-pink-500/20 text-pink-400 border-pink-500/30">
-                        Powered by Cloudinary
-                      </Badge>
-                    </div>
+                  {activeTab === "upscale" && (
+                    <div className="space-y-8 flex-1 flex flex-col">
+                      <div className="flex items-center justify-between mb-2">
+                        <h2 className="text-2xl font-bold text-white">
+                          AI Image Upscaler
+                        </h2>
+                        <Badge className="bg-pink-500/20 text-pink-400 border-pink-500/30">
+                          Powered by Cloudinary
+                        </Badge>
+                      </div>
 
-                    <div className="flex-1 flex flex-col gap-6">
-                      {upscaleImage ? (
-                        <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-6 h-full min-h-[400px]">
-                          <div className="space-y-4">
-                            <Label className="text-zinc-400 uppercase text-[10px] tracking-widest font-bold">
-                              Original
-                            </Label>
-                            <div className="relative aspect-square rounded-2xl overflow-hidden bg-zinc-950 border border-zinc-800 group">
-                              <img
-                                src={upscaleImage}
-                                alt="Original"
-                                className="w-full h-full object-contain"
-                              />
+                      <div className="flex-1 flex flex-col gap-6">
+                        {upscaleImage ? (
+                          <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-6 h-full min-h-[400px]">
+                            <div className="space-y-4">
+                              <Label className="text-zinc-400 uppercase text-[10px] tracking-widest font-bold">
+                                Original
+                              </Label>
+                              <div className="relative aspect-square rounded-2xl overflow-hidden bg-zinc-950 border border-zinc-800 group">
+                                <img
+                                  src={upscaleImage}
+                                  alt="Original"
+                                  className="w-full h-full object-contain"
+                                />
+                                <Button
+                                  size="icon"
+                                  variant="destructive"
+                                  className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                                  onClick={() => {
+                                    setUpscaleImage(null);
+                                    setUpscaledResult(null);
+                                  }}
+                                >
+                                  <X className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </div>
+                            <div className="space-y-4">
+                              <Label className="text-zinc-400 uppercase text-[10px] tracking-widest font-bold">
+                                Upscaled Result
+                              </Label>
+                              <div className="relative aspect-square rounded-2xl overflow-hidden bg-zinc-900 border border-zinc-800 flex items-center justify-center">
+                                {isUpscaling ? (
+                                  <div className="text-center">
+                                    <Loader2 className="w-10 h-10 text-pink-400 animate-spin mx-auto mb-4" />
+                                    <p className="text-sm text-zinc-400 animate-pulse">
+                                      Upscaling with AI...
+                                    </p>
+                                  </div>
+                                ) : upscaledResult ? (
+                                  <>
+                                    <img
+                                      src={upscaledResult}
+                                      alt="Upscaled"
+                                      className="w-full h-full object-contain relative z-10"
+                                    />
+                                    <div className="absolute top-4 right-4 z-20">
+                                      <Button
+                                        size="sm"
+                                        className="bg-white text-black hover:bg-zinc-200"
+                                        onClick={() =>
+                                          downloadFile(
+                                            upscaledResult,
+                                            "upscaled-image.png",
+                                          )
+                                        }
+                                      >
+                                        <Download className="w-4 h-4 mr-2" />{" "}
+                                        Download
+                                      </Button>
+                                    </div>
+                                  </>
+                                ) : (
+                                  <div className="text-center p-8">
+                                    <Maximize2 className="w-12 h-12 text-zinc-800 mx-auto mb-4" />
+                                    <p className="text-sm text-zinc-600">
+                                      Click upscale to enhance image
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div
+                            onClick={() => upscaleInputRef.current?.click()}
+                            className="flex-1 flex items-center justify-center border-2 border-dashed border-zinc-800 rounded-3xl bg-zinc-950/30 hover:bg-zinc-900/30 transition-colors group cursor-pointer"
+                          >
+                            <input
+                              type="file"
+                              ref={upscaleInputRef}
+                              className="hidden"
+                              accept="image/*"
+                              onChange={handleUpscaleImageUpload}
+                            />
+                            <div className="text-center p-12">
+                              <div className="w-20 h-20 rounded-2xl bg-zinc-900 flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
+                                <Maximize2 className="w-10 h-10 text-zinc-500" />
+                              </div>
+                              <h3 className="text-xl font-semibold text-white mb-2">
+                                Enhance your image
+                              </h3>
+                              <p className="text-zinc-500 mb-8">
+                                Upload low-res images to upscale them using AI.
+                                Max 8K resolution.
+                              </p>
                               <Button
-                                size="icon"
-                                variant="destructive"
-                                className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                                onClick={() => {
-                                  setUpscaleImage(null);
-                                  setUpscaledResult(null);
-                                }}
+                                variant="outline"
+                                className="border-zinc-800 text-white"
                               >
-                                <X className="w-4 h-4" />
+                                Choose File
                               </Button>
                             </div>
                           </div>
-                          <div className="space-y-4">
-                            <Label className="text-zinc-400 uppercase text-[10px] tracking-widest font-bold">
-                              Upscaled Result
-                            </Label>
-                            <div className="relative aspect-square rounded-2xl overflow-hidden bg-zinc-900 border border-zinc-800 flex items-center justify-center">
-                              {isUpscaling ? (
-                                <div className="text-center">
-                                  <Loader2 className="w-10 h-10 text-pink-400 animate-spin mx-auto mb-4" />
-                                  <p className="text-sm text-zinc-400 animate-pulse">
-                                    Upscaling with AI...
-                                  </p>
-                                </div>
-                              ) : upscaledResult ? (
-                                <>
-                                  <img
-                                    src={upscaledResult}
-                                    alt="Upscaled"
-                                    className="w-full h-full object-contain relative z-10"
-                                  />
-                                  <div className="absolute top-4 right-4 z-20">
-                                    <Button
-                                      size="sm"
-                                      className="bg-white text-black hover:bg-zinc-200"
-                                      onClick={() =>
-                                        downloadFile(
-                                          upscaledResult,
-                                          "upscaled-image.png",
-                                        )
-                                      }
-                                    >
-                                      <Download className="w-4 h-4 mr-2" />{" "}
-                                      Download
-                                    </Button>
-                                  </div>
-                                </>
-                              ) : (
-                                <div className="text-center p-8">
-                                  <Maximize2 className="w-12 h-12 text-zinc-800 mx-auto mb-4" />
-                                  <p className="text-sm text-zinc-600">
-                                    Click upscale to enhance image
-                                  </p>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <div
-                          onClick={() => upscaleInputRef.current?.click()}
-                          className="flex-1 flex items-center justify-center border-2 border-dashed border-zinc-800 rounded-3xl bg-zinc-950/30 hover:bg-zinc-900/30 transition-colors group cursor-pointer"
-                        >
-                          <input
-                            type="file"
-                            ref={upscaleInputRef}
-                            className="hidden"
-                            accept="image/*"
-                            onChange={handleUpscaleImageUpload}
-                          />
-                          <div className="text-center p-12">
-                            <div className="w-20 h-20 rounded-2xl bg-zinc-900 flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
-                              <Maximize2 className="w-10 h-10 text-zinc-500" />
-                            </div>
-                            <h3 className="text-xl font-semibold text-white mb-2">
-                              Enhance your image
-                            </h3>
-                            <p className="text-zinc-500 mb-8">
-                              Upload low-res images to upscale them using AI.
-                              Max 8K resolution.
-                            </p>
-                            <Button
-                              variant="outline"
-                              className="border-zinc-800 text-white"
-                            >
-                              Choose File
-                            </Button>
-                          </div>
-                        </div>
-                      )}
+                        )}
 
-                      {upscaleError && (
-                        <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 flex items-center gap-3 text-red-400">
-                          <AlertCircle className="w-5 h-5 flex-shrink-0" />
-                          <p className="text-sm">{upscaleError}</p>
-                        </div>
-                      )}
+                        {upscaleError && (
+                          <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 flex items-center gap-3 text-red-400">
+                            <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                            <p className="text-sm">{upscaleError}</p>
+                          </div>
+                        )}
 
-                      <div className="grid grid-cols-2 gap-4">
-                        <Button
-                          onClick={handleUpscale}
-                          disabled={
-                            !upscaleImage || isUpscaling || !!upscaledResult
-                          }
-                          variant="secondary"
-                          className="h-14 gap-2 bg-pink-500 hover:bg-pink-600 text-white font-bold"
-                        >
-                          {isUpscaling ? (
-                            <Loader2 className="w-5 h-5 animate-spin" />
-                          ) : (
-                            <Maximize2 className="w-5 h-5" />
-                          )}
-                          Upscale Image
-                        </Button>
-                        <Button
-                          onClick={() => {
-                            setUpscaleImage(null);
-                            setUpscaledResult(null);
-                            upscaleInputRef.current?.click();
-                          }}
-                          variant="outline"
-                          className="h-14 gap-2 border-zinc-800 text-white hover:bg-zinc-800"
-                        >
-                          <RefreshCcw className="w-5 h-5" /> Change Image
-                        </Button>
+                        <div className="grid grid-cols-2 gap-4">
+                          <Button
+                            onClick={handleUpscale}
+                            disabled={
+                              !upscaleImage || isUpscaling || !!upscaledResult
+                            }
+                            variant="secondary"
+                            className="h-14 gap-2 bg-pink-500 hover:bg-pink-600 text-white font-bold"
+                          >
+                            {isUpscaling ? (
+                              <Loader2 className="w-5 h-5 animate-spin" />
+                            ) : (
+                              <Maximize2 className="w-5 h-5" />
+                            )}
+                            Upscale Image
+                          </Button>
+                          <Button
+                            onClick={() => {
+                              setUpscaleImage(null);
+                              setUpscaledResult(null);
+                              upscaleInputRef.current?.click();
+                            }}
+                            variant="outline"
+                            className="h-14 gap-2 border-zinc-800 text-white hover:bg-zinc-800"
+                          >
+                            <RefreshCcw className="w-5 h-5" /> Change Image
+                          </Button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {/* Other tabs */}
-                {activeTab !== "text-video" &&
-                  activeTab !== "background" &&
-                  activeTab !== "upscale" && (
+                  {activeTab === "recorder" && (
+                    <div className="space-y-8 flex-1 flex flex-col">
+                      <div className="flex items-center justify-between mb-2">
+                        <h2 className="text-2xl font-bold text-white">
+                          Professional Screen Recorder
+                        </h2>
+                        <Badge className={cn(
+                          "transition-colors duration-300",
+                          isRecording ? "bg-red-500/20 text-red-400 border-red-500/30 animate-pulse" : "bg-cyan-500/20 text-cyan-400 border-cyan-500/30"
+                        )}>
+                          {isRecording ? "Recording Live" : "Ready to Record"}
+                        </Badge>
+                      </div>
+
+                      <div className="flex-1 flex flex-col items-center justify-center border-2 border-dashed border-zinc-800 rounded-3xl bg-zinc-950/30 relative overflow-hidden p-12">
+                        {isRecording && (
+                          <div className="absolute top-6 left-6 flex items-center gap-3 px-4 py-2 bg-red-500/10 border border-red-500/30 rounded-full">
+                            <div className="w-3 h-3 bg-red-500 rounded-full animate-ping" />
+                            <span className="text-sm font-bold text-red-400 tracking-wider">
+                              {formatDuration(recordingDuration)}
+                            </span>
+                          </div>
+                        )}
+
+                        <div className="text-center relative z-10">
+                          <div className={cn(
+                            "w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-8 transition-all duration-500 shadow-2xl",
+                            isRecording 
+                              ? "bg-red-600 animate-pulse scale-110 shadow-red-900/40" 
+                              : "bg-zinc-900 border border-zinc-800 hover:scale-110 shadow-black/40"
+                          )}>
+                            {isRecording ? (
+                              <div className="w-8 h-8 bg-white rounded-sm" />
+                            ) : (
+                              <Monitor className="w-10 h-10 text-cyan-400" />
+                            )}
+                          </div>
+                          
+                          <h3 className="text-2xl font-bold text-white mb-3">
+                            {isRecording ? "Capturing Screen..." : "Share Your Screen"}
+                          </h3>
+                          <p className="text-zinc-500 max-w-sm mx-auto mb-10 leading-relaxed">
+                            {isRecording 
+                              ? "Your recording is in progress. Click the stop button or stop sharing to save your video automatically." 
+                              : "Record your entire screen, specific windows, or browser tabs in high quality. No software required."}
+                          </p>
+
+                          <div className="flex flex-col items-center gap-4">
+                            {!isRecording ? (
+                              <Button
+                                onClick={startRecording}
+                                className="h-16 px-10 rounded-2xl bg-cyan-600 hover:bg-cyan-700 text-white font-bold text-lg gap-3 shadow-xl shadow-cyan-900/20 group"
+                              >
+                                <Play className="w-6 h-6 fill-current group-hover:scale-110 transition-transform" />
+                                Start Recording
+                              </Button>
+                            ) : (
+                              <Button
+                                onClick={stopRecording}
+                                variant="destructive"
+                                className="h-16 px-10 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-bold text-lg gap-3 shadow-xl shadow-red-900/20"
+                              >
+                                <X className="w-6 h-6" />
+                                Stop Recording
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Visual background element */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-cyan-500/5 to-transparent pointer-events-none" />
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {[
+                          { title: "High Quality", desc: "Native resolution capture", icon: Sparkles },
+                          { title: "Auto Download", desc: "Instant WebM generation", icon: Download },
+                          { title: "Privacy First", desc: "Local processing only", icon: Shield }
+                        ].map((feat, i) => (
+                          <div key={i} className="p-4 rounded-xl bg-zinc-900/30 border border-zinc-800/50 flex items-start gap-4">
+                            <div className="w-10 h-10 rounded-lg bg-zinc-800/50 flex items-center justify-center flex-shrink-0 text-cyan-400">
+                              <feat.icon className="w-5 h-5" />
+                            </div>
+                            <div>
+                              <div className="text-sm font-bold text-white mb-1">{feat.title}</div>
+                              <div className="text-xs text-zinc-500">{feat.desc}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Other tabs */}
+                  {activeTab !== "text-video" &&
+                    activeTab !== "background" &&
+                    activeTab !== "upscale" && 
+                    activeTab !== "recorder" && (
                     <div className="flex-1 flex flex-col items-center justify-center text-center p-12">
                       <div className="w-20 h-20 rounded-full bg-zinc-800 flex items-center justify-center mb-6">
                         <Zap className="w-10 h-10 text-zinc-600" />

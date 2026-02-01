@@ -1,5 +1,5 @@
 ## Project Summary
-A comprehensive AI-powered hub called Invideo AI Studio that provides multiple creative tools including video generation (Wan-2.1), background removal, image upscaling (Cloudinary), and face swapping (Piktid). The project aims to be a unified workspace for professional AI creative workflows.
+A comprehensive AI-powered hub called Invideo AI Studio that provides multiple creative tools including video generation (Wan-2.1), background removal, and image upscaling (Cloudinary). The project aims to be a unified workspace for professional AI creative workflows.
 
 ## Tech Stack
 - **Framework**: Next.js 15 (App Router)
@@ -7,7 +7,6 @@ A comprehensive AI-powered hub called Invideo AI Studio that provides multiple c
 - **Styling**: Tailwind CSS, Framer Motion, Lucide React
 - **API Clients**: Axios, Form-data
 - **Services**:
-  - **Face Swapping**: Piktid API
   - **Video Generation**: Replicate (Wan-2.1)
   - **Image Upscaling**: Cloudinary
   - **Background Removal**: Remove.bg / Cloudinary (depending on route)
@@ -30,9 +29,5 @@ A comprehensive AI-powered hub called Invideo AI Studio that provides multiple c
 - Wrap `useSearchParams` in `Suspense` boundaries.
 
 ## Common Patterns
-- **Piktid Integration**: Uses a multi-step async flow:
-  1. Upload target image to `/api/consistent_identities/upload_target` (field name: `file`).
-  2. Upload source face to `/api/consistent_identities/upload_face` (field name: `file`).
-  3. Start generation with `/api/consistent_identities/generate`.
-  4. Poll `/api/consistent_identities/notification/read` with `id_image`.
-  5. Cleanup with `/api/consistent_identities/notification/delete`.
+- **Video Generation**: Uses Replicate's prediction API with polling for completion.
+- **Image Processing**: Integrates with Cloudinary for upscaling and Remove.bg for background removal.

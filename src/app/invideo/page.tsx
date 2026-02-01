@@ -71,21 +71,14 @@ const features = [
     description: "Enhance resolution up to 8K with AI.",
     color: "text-pink-400",
   },
-  {
-    id: "recorder",
-    name: "Screen Recorder",
-    icon: Monitor,
-    description: "Professional screen capturing with AI enhancements.",
-    color: "text-cyan-400",
-  },
-  {
-    id: "img-to-vid",
-    name: "Animation Maker",
-    icon: Zap,
-    description: "Animate static images into cinematic videos.",
-    color: "text-yellow-400",
-  },
-];
+    {
+      id: "recorder",
+      name: "Screen Recorder",
+      icon: Monitor,
+      description: "Professional screen capturing with AI enhancements.",
+      color: "text-cyan-400",
+    },
+  ];
 
 export default function InvideoPage() {
   const [activeTab, setActiveTab] = useState("text-video");

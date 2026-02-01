@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
 
     // 1. Upload Target
     const targetForm = new FormData();
-    targetForm.append('file', base64ToBuffer(targetImage), { filename: 'target.png', contentType: 'image/png' });
+    targetForm.append('image', base64ToBuffer(targetImage), { filename: 'target.png', contentType: 'image/png' });
     
     console.log('Uploading target image to Piktid...');
     const targetResp = await client.post('/api/consistent_identities/upload_target', targetForm, {
@@ -38,11 +38,13 @@ export async function POST(req: NextRequest) {
 
     const { image_id, coordinates_list } = targetResp.data;
     if (!image_id || !coordinates_list || coordinates_list.length === 0) {
+      console.log('Target Upload Response:', JSON.stringify(targetResp.data));
       throw new Error('No faces detected in target image');
     }
 
-    // Piktid uses FACE_ID in uppercase
-    const faceId = coordinates_list[0].FACE_ID || coordinates_list[0].face_id;
+    // Piktid face ID is usually the index in coordinates_list, but can be provided in the object
+    const faceId = coordinates_list[0].FACE_ID !== undefined ? coordinates_list[0].FACE_ID : 
+                  (coordinates_list[0].face_id !== undefined ? coordinates_list[0].face_id : 0);
 
     // 2. Upload Source Face
     const sourceForm = new FormData();

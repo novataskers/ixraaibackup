@@ -1,12 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { v2 as cloudinary } from 'cloudinary';
-
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-  secure: true,
-});
+import { fal } from '@fal-ai/client';
 
 export async function POST(req: NextRequest) {
   try {
@@ -16,28 +9,29 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Image is required' }, { status: 400 });
     }
 
-    // Upload to Cloudinary with AI upscaling transformation
-    // We use eager transformation to ensure the upscaled version is generated
-    const uploadResponse = await cloudinary.uploader.upload(image, {
-      folder: 'invideo-upscaler',
-      eager: [
-        { effect: 'upscale' },
-        { quality: 'auto' },
-        { fetch_format: 'auto' }
-      ]
+    // Use Fal AI for upscaling (ESRGAN)
+    // We pass the base64 image directly or use fal.storage.upload if needed
+    // The client handles data URLs automatically
+    const result: any = await fal.subscribe('fal-ai/esrgan', {
+      input: {
+        image_url: image,
+        scale: 4,
+        model: 'RealESRGAN_x4plus',
+      },
     });
 
-    // The eager array contains the transformed versions
-    const upscaledUrl = uploadResponse.eager?.[0]?.secure_url || uploadResponse.secure_url;
+    if (!result || !result.data || !result.data.image) {
+      throw new Error('Failed to get upscaled image from Fal AI');
+    }
 
     return NextResponse.json({ 
       success: true, 
-      output: upscaledUrl,
-      original: uploadResponse.secure_url
+      output: result.data.image.url,
+      original: image.startsWith('http') ? image : undefined
     });
 
   } catch (error: any) {
-    console.error('Cloudinary Upscale Error:', error);
+    console.error('Fal AI Upscale Error:', error);
     return NextResponse.json(
       { error: error.message || 'Failed to upscale image' },
       { status: 500 }

@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
 
     // 1. Upload Target
     const targetForm = new FormData();
-    targetForm.append('image', base64ToBuffer(targetImage), { filename: 'target.png', contentType: 'image/png' });
+    targetForm.append('file', base64ToBuffer(targetImage), { filename: 'target.png', contentType: 'image/png' });
     
     console.log('Uploading target image to Piktid...');
     const targetResp = await client.post('/api/consistent_identities/upload_target', targetForm, {
@@ -41,6 +41,9 @@ export async function POST(req: NextRequest) {
       throw new Error('No faces detected in target image');
     }
 
+    // Piktid uses FACE_ID in uppercase
+    const faceId = coordinates_list[0].FACE_ID || coordinates_list[0].face_id;
+
     // 2. Upload Source Face
     const sourceForm = new FormData();
     sourceForm.append('file', base64ToBuffer(sourceImage), { filename: 'source.png', contentType: 'image/png' });
@@ -50,33 +53,37 @@ export async function POST(req: NextRequest) {
       headers: sourceForm.getHeaders()
     });
 
-    const { face_name } = sourceResp.data;
+    const { identity_name } = sourceResp.data;
 
     // 3. Generate Swap
     console.log('Starting face swap generation...');
     await client.post('/api/consistent_identities/generate', {
-      identity_name: face_name,
+      identity_name: identity_name,
       id_image: image_id,
-      id_face: coordinates_list[0].face_id,
-      flag_replace_and_download: true,
-      skin: true
+      id_face: faceId,
+      options: {
+        flag_replace_and_download: true,
+        skin: true
+      }
     });
 
     // 4. Poll for results
     console.log('Polling for results...');
     let resultUrl = null;
     let attempts = 0;
-    const maxAttempts = 30; // 30 * 2s = 60s max
+    const maxAttempts = 40; // 40 * 3s = 120s max
 
     while (attempts < maxAttempts) {
       attempts++;
-      await new Promise(r => setTimeout(r, 2000));
+      await new Promise(r => setTimeout(r, 3000));
       
-      const pollResp = await client.post('/api/consistent_identities/notification/read');
+      const pollResp = await client.post('/api/consistent_identities/notification/read', {
+        id_image: image_id
+      });
       
-      // The API might return an array or a single object
-      const notifications = Array.isArray(pollResp.data) ? pollResp.data : (pollResp.data ? [pollResp.data] : []);
+      const notifications = Array.isArray(pollResp.data) ? pollResp.data : [];
       
+      // Look for a completed notification for this image
       const latestNotification = notifications.find((n: any) => 
         n.status === 'completed' && (n.id_image === image_id || n.image_id === image_id)
       );
@@ -84,7 +91,11 @@ export async function POST(req: NextRequest) {
       if (latestNotification) {
         resultUrl = latestNotification.link_hd || latestNotification.link;
         // Cleanup notification
-        await client.delete(`/api/consistent_identities/notification/${latestNotification.id}`).catch(() => {});
+        await client.post('/api/consistent_identities/notification/delete', {
+          id: latestNotification.id,
+          id_image: image_id,
+          f: faceId
+        }).catch(() => {});
         break;
       }
 
@@ -92,7 +103,6 @@ export async function POST(req: NextRequest) {
         n.status === 'failed' && (n.id_image === image_id || n.image_id === image_id)
       );
       if (failedNotification) {
-        await client.delete(`/api/consistent_identities/notification/${failedNotification.id}`).catch(() => {});
         throw new Error('Face swap generation failed on Piktid');
       }
     }

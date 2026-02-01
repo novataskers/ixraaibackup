@@ -836,7 +836,7 @@ export default function InvideoPage() {
                         Face Swapper
                       </h2>
                       <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30">
-                        Powered by Hugging Face
+                        Powered by Piktid
                       </Badge>
                     </div>
 

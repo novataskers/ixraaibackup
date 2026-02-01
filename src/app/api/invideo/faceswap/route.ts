@@ -1,64 +1,116 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Client } from '@gradio/client';
-import { cloudinary } from '@/lib/cloudinary';
+import axios from 'axios';
+import FormData from 'form-data';
 
 export async function POST(req: NextRequest) {
   try {
     const { sourceImage, targetImage } = await req.json();
+    const token = process.env.PIKTID_ACCESS_TOKEN;
+
+    if (!token) {
+      throw new Error('PIKTID_ACCESS_TOKEN is missing');
+    }
 
     if (!sourceImage || !targetImage) {
       return NextResponse.json({ error: 'Both source and target images are required' }, { status: 400 });
     }
 
-    // Helper function to upload base64 to Cloudinary and get URL
-    // Gradio client can take URLs directly
-    const uploadToCloudinary = async (base64: string) => {
-      try {
-        const uploadResponse = await cloudinary.uploader.upload(base64, {
-          folder: 'faceswap',
-        });
-        return uploadResponse.secure_url;
-      } catch (error) {
-        console.error('Cloudinary upload error:', error);
-        throw new Error('Failed to process image for swapping');
-      }
-    };
-
-    // Upload images to Cloudinary to get HTTPS URLs
-    const [sourceUrl, targetUrl] = await Promise.all([
-      uploadToCloudinary(sourceImage),
-      uploadToCloudinary(targetImage)
-    ]);
-
-    // Connect to a free Hugging Face Space
-    // "Dentro/face-swap" is a popular and stable one
-    const client = await Client.connect("Dentro/face-swap");
-    
-    // Call the prediction
-    // Note: The input parameters depend on the specific space's API
-    // Most face swap spaces take (source_img, target_img)
-    const result: any = await client.predict("/predict", {
-      sourceImage: sourceUrl,
-      targetImage: targetUrl,
+    const client = axios.create({
+      baseURL: 'https://api.piktid.com',
+      headers: { Authorization: `Bearer ${token}` }
     });
 
-    if (!result || !result.data || !result.data[0]) {
-      // Try another endpoint or format if the first one fails
-      throw new Error('Failed to get output from Hugging Face Space');
+    // Helper to convert base64 to buffer
+    const base64ToBuffer = (base64: string) => {
+      const split = base64.split(',');
+      const data = split.length > 1 ? split[1] : split[0];
+      return Buffer.from(data, 'base64');
+    };
+
+    // 1. Upload Target
+    const targetForm = new FormData();
+    targetForm.append('image', base64ToBuffer(targetImage), { filename: 'target.png', contentType: 'image/png' });
+    
+    console.log('Uploading target image to Piktid...');
+    const targetResp = await client.post('/api/consistent_identities/upload_target', targetForm, {
+      headers: targetForm.getHeaders()
+    });
+
+    const { image_id, coordinates_list } = targetResp.data;
+    if (!image_id || !coordinates_list || coordinates_list.length === 0) {
+      throw new Error('No faces detected in target image');
     }
 
-    // Result data[0] is usually the image object or URL
-    const outputImage = result.data[0].url || result.data[0];
+    // 2. Upload Source Face
+    const sourceForm = new FormData();
+    sourceForm.append('file', base64ToBuffer(sourceImage), { filename: 'source.png', contentType: 'image/png' });
+
+    console.log('Uploading source face to Piktid...');
+    const sourceResp = await client.post('/api/consistent_identities/upload_face', sourceForm, {
+      headers: sourceForm.getHeaders()
+    });
+
+    const { face_name } = sourceResp.data;
+
+    // 3. Generate Swap
+    console.log('Starting face swap generation...');
+    await client.post('/api/consistent_identities/generate', {
+      identity_name: face_name,
+      id_image: image_id,
+      id_face: coordinates_list[0].face_id,
+      flag_replace_and_download: true,
+      skin: true
+    });
+
+    // 4. Poll for results
+    console.log('Polling for results...');
+    let resultUrl = null;
+    let attempts = 0;
+    const maxAttempts = 30; // 30 * 2s = 60s max
+
+    while (attempts < maxAttempts) {
+      attempts++;
+      await new Promise(r => setTimeout(r, 2000));
+      
+      const pollResp = await client.post('/api/consistent_identities/notification/read');
+      
+      // The API might return an array or a single object
+      const notifications = Array.isArray(pollResp.data) ? pollResp.data : (pollResp.data ? [pollResp.data] : []);
+      
+      const latestNotification = notifications.find((n: any) => 
+        n.status === 'completed' && (n.id_image === image_id || n.image_id === image_id)
+      );
+
+      if (latestNotification) {
+        resultUrl = latestNotification.link_hd || latestNotification.link;
+        // Cleanup notification
+        await client.delete(`/api/consistent_identities/notification/${latestNotification.id}`).catch(() => {});
+        break;
+      }
+
+      const failedNotification = notifications.find((n: any) => 
+        n.status === 'failed' && (n.id_image === image_id || n.image_id === image_id)
+      );
+      if (failedNotification) {
+        await client.delete(`/api/consistent_identities/notification/${failedNotification.id}`).catch(() => {});
+        throw new Error('Face swap generation failed on Piktid');
+      }
+    }
+
+    if (!resultUrl) {
+      throw new Error('Face swap timed out');
+    }
 
     return NextResponse.json({ 
       success: true, 
-      output: outputImage
+      output: resultUrl
     });
 
   } catch (error: any) {
-    console.error('Hugging Face Face Swap Error:', error);
+    console.error('Piktid Face Swap Error:', error.response?.data || error.message);
+    const errorMessage = error.response?.data?.message || error.message || 'Failed to swap face';
     return NextResponse.json(
-      { error: error.message || 'Failed to swap face' },
+      { error: errorMessage },
       { status: 500 }
     );
   }

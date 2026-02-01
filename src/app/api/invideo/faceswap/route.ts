@@ -38,8 +38,8 @@ export async function POST(req: NextRequest) {
     // Note: The input parameters depend on the specific space's API
     // Most face swap spaces take (source_img, target_img)
     const result: any = await client.predict("/predict", {
-      source_file: sourceUrl,
-      target_file: targetUrl,
+      sourceImage: sourceUrl,
+      targetImage: targetUrl,
     });
 
     if (!result || !result.data || !result.data[0]) {

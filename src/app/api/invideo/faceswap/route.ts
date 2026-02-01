@@ -13,6 +13,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Segmind API key not configured' }, { status: 500 });
     }
 
+    // Strip data URL prefix if present
+    const cleanSource = sourceImage.replace(/^data:image\/\w+;base64,/, '');
+    const cleanTarget = targetImage.replace(/^data:image\/\w+;base64,/, '');
+
     // Segmind Faceswap V4
     const response = await fetch('https://api.segmind.com/v1/faceswap-v4', {
       method: 'POST',
@@ -21,21 +25,31 @@ export async function POST(req: NextRequest) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        source_image: sourceImage,
-        target_image: targetImage,
+        source_image: cleanSource,
+        target_image: cleanTarget,
         model_type: 'speed',
         swap_type: 'head',
         style_type: 'normal',
         image_format: 'png',
         image_quality: 90,
         hardware: 'fast',
-        base64: false,
+        base64: true,
       }),
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || `Segmind API error: ${response.status}`);
+      if (response.status === 406) {
+        throw new Error('Insufficient Segmind credits. Please top up your account at cloud.segmind.com');
+      }
+      const errorText = await response.text();
+      let errorMessage = `Segmind API error: ${response.status}`;
+      try {
+        const errorJson = JSON.parse(errorText);
+        errorMessage = errorJson.message || errorMessage;
+      } catch (e) {
+        errorMessage = errorText || errorMessage;
+      }
+      throw new Error(errorMessage);
     }
 
     const data = await response.json();

@@ -47,14 +47,13 @@ async function getVideoInfo(videoId: string): Promise<{ title: string; duration:
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { 
-      url, 
-      clipDuration = 60, 
-      maxClips = 5, 
-      aspectRatio = "9:16",
-      addCaptions = true,
-      captionStyle = "bold"
-    } = body;
+    const { url } = body;
+    
+    const clipDuration = 30;
+    const maxClips = 10;
+    const aspectRatio = "9:16";
+    const addCaptions = true;
+    const captionStyle = "bold";
 
     if (!url) {
       return NextResponse.json({ error: "No YouTube URL provided" }, { status: 400 });

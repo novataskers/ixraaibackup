@@ -93,9 +93,9 @@ export default function Home() {
                   <h3 className="text-2xl font-bold text-white mb-3 flex items-center gap-2">
                     Invideo Hub <ArrowRight className="w-5 h-5 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
                   </h3>
-                  <p className="text-zinc-400 mb-6 line-clamp-2">
-                    Premium video & image generation. VEO 3, Sora 2.2, and AI Avatars at your fingertips.
-                  </p>
+                    <p className="text-zinc-400 mb-6 line-clamp-2">
+                      Premium video & image generation. Powered by Fal.ai Studio.
+                    </p>
                   <ul className="space-y-2 mb-8">
                     {["Text to Video", "AI Avatars", "Model Suite"].map((feature) => (
                       <li key={feature} className="text-xs text-zinc-500 flex items-center gap-2">
@@ -121,9 +121,9 @@ export default function Home() {
                   <div className="w-14 h-14 rounded-2xl bg-blue-600/20 flex items-center justify-center mb-6 border border-blue-500/30 group-hover:scale-110 transition-transform duration-500">
                     <Scissors className="w-7 h-7 text-blue-400" />
                   </div>
-                  <h3 className="text-2xl font-bold text-white mb-3 flex items-center gap-2">
-                    Opus Clips <ArrowRight className="w-5 h-5 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
-                  </h3>
+                    <h3 className="text-2xl font-bold text-white mb-3 flex items-center gap-2">
+                      Vizard Studio <ArrowRight className="w-5 h-5 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
+                    </h3>
                   <p className="text-zinc-400 mb-6 line-clamp-2">
                     Transform long-form content into viral shorts. Auto-splitting, captions, and more.
                   </p>

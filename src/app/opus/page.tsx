@@ -4,10 +4,8 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Slider } from "@/components/ui/slider";
 import {
   Download,
   FileVideo,
@@ -15,14 +13,12 @@ import {
   ArrowLeft,
   Youtube,
   Sparkles,
-  Captions,
   Clock,
-  Zap,
   CheckCircle2,
   Circle,
   AlertCircle,
-  ExternalLink,
   Play,
+  Scissors,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -85,14 +81,23 @@ export default function OpusPage() {
   const [jobStatus, setJobStatus] = useState<JobStatus | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
 
-  const [clipDuration, setClipDuration] = useState(30);
-  const [maxClips, setMaxClips] = useState(5);
-  const [aspectRatio, setAspectRatio] = useState<"9:16" | "16:9">("9:16");
-  const [addCaptions, setAddCaptions] = useState(true);
-  const [captionStyle, setCaptionStyle] = useState<"classic" | "bold" | "outline" | "glow">("bold");
-  const [downloadingClipId, setDownloadingClipId] = useState<number | null>(null);
+    const [downloadingClipId, setDownloadingClipId] = useState<number | null>(null);
+    const [isDownloadingAll, setIsDownloadingAll] = useState(false);
 
-  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    const handleDownloadAll = async () => {
+      if (!jobId) return;
+      setIsDownloadingAll(true);
+      try {
+        window.location.href = `/api/opus/download-all?jobId=${jobId}`;
+        // Reset state after a delay since we can't easily detect download completion
+        setTimeout(() => setIsDownloadingAll(false), 3000);
+      } catch (err) {
+        console.error("Download all error:", err);
+        setIsDownloadingAll(false);
+      }
+    };
+
+    const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const formatDuration = (seconds: number) => {
     const h = Math.floor(seconds / 3600);
@@ -100,6 +105,24 @@ export default function OpusPage() {
     const s = Math.floor(seconds % 60);
     if (h > 0) return `${h}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
     return `${m}:${s.toString().padStart(2, "0")}`;
+  };
+
+  const downloadFile = (url: string, filename: string) => {
+    if (!url) return;
+    
+    // For external URLs, use the proxy to force download
+    if (url.startsWith("http")) {
+      const proxyUrl = `/api/proxy?url=${encodeURIComponent(url)}&filename=${encodeURIComponent(filename)}&download=true`;
+      window.location.href = proxyUrl;
+      return;
+    }
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const pollJobStatus = useCallback(async (id: string) => {
@@ -167,11 +190,6 @@ export default function OpusPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           url: youtubeUrl,
-          clipDuration,
-          maxClips,
-          aspectRatio,
-          addCaptions,
-          captionStyle,
         }),
       });
 
@@ -219,17 +237,36 @@ export default function OpusPage() {
           <span className="font-mono text-sm">Back to Dashboard</span>
         </Link>
 
-        <div className="mb-10 text-center">
-          <div className="mb-4 inline-flex items-center justify-center rounded-2xl bg-purple-500/10 p-4 border border-purple-500/20">
-            <Sparkles className="h-10 w-10 text-purple-400" />
-          </div>
-          <h1 className="mb-2 font-mono text-4xl font-bold tracking-tight">
-            AI Clip Generator
-          </h1>
-          <p className="font-mono text-sm text-zinc-500">
-            Turn long YouTube videos into viral short clips with AI
-          </p>
-        </div>
+            <div className="mb-10 flex flex-col md:flex-row items-center justify-center gap-12 md:gap-20">
+              <div className="text-center group cursor-default">
+                <div className="mb-4 inline-flex items-center justify-center rounded-[24px] bg-gradient-to-b from-[#A855F7] to-[#D946EF] p-5 shadow-[0_0_30px_rgba(168,85,247,0.3)] group-hover:shadow-[0_0_40px_rgba(168,85,247,0.5)] group-hover:scale-110 transition-all duration-300">
+                  <Sparkles className="h-10 w-10 text-white" />
+                </div>
+                <h1 className="mb-2 text-4xl font-bold tracking-tight text-white">
+                  Vizard Studio
+                </h1>
+                <p className="text-sm text-zinc-400">
+                  Turn long YouTube videos into viral short clips with AI
+                </p>
+              </div>
+
+              <a 
+                href="https://orchids-video-splitter-tool-11111111ssxsxxs-production-6973.up.railway.app/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-center group transition-all"
+              >
+                <div className="mb-4 inline-flex items-center justify-center rounded-[24px] bg-gradient-to-b from-[#A855F7] to-[#D946EF] p-5 shadow-[0_0_30px_rgba(168,85,247,0.3)] group-hover:shadow-[0_0_40px_rgba(168,85,247,0.5)] group-hover:scale-110 transition-all duration-300">
+                  <Scissors className="h-10 w-10 text-white" />
+                </div>
+                <h2 className="mb-2 text-4xl font-bold tracking-tight text-white">
+                  Video Splitter
+                </h2>
+                <p className="text-sm text-zinc-400">
+                  Split large videos without re-encoding
+                </p>
+              </a>
+            </div>
 
         {!jobId && (
           <>
@@ -252,142 +289,6 @@ export default function OpusPage() {
                   <p className="font-mono text-xs text-zinc-600">
                     Paste any YouTube video link to generate viral clips
                   </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-zinc-800 bg-zinc-900/50 backdrop-blur-sm mb-6">
-              <CardHeader className="pb-4">
-                <CardTitle className="flex items-center gap-2 font-mono text-lg text-zinc-200">
-                  <Zap className="h-5 w-5 text-purple-400" />
-                  Clip Settings
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <Label className="font-mono text-sm text-zinc-400">Clip Duration</Label>
-                      <span className="font-mono text-sm text-purple-400">&lt;{clipDuration}s</span>
-                    </div>
-                    <RadioGroup
-                      value={String(clipDuration)}
-                      onValueChange={(v) => setClipDuration(Number(v))}
-                      className="flex gap-4"
-                      disabled={isSubmitting}
-                    >
-                      {[
-                        { value: "30", label: "<30s" },
-                        { value: "60", label: "<60s" },
-                      ].map((opt) => (
-                        <label
-                          key={opt.value}
-                          className={`flex cursor-pointer items-center justify-center rounded-lg border-2 px-4 py-2 transition-all ${
-                            clipDuration === Number(opt.value)
-                              ? "border-purple-500 bg-purple-500/10"
-                              : "border-zinc-800 bg-zinc-900/50 hover:border-zinc-700"
-                          }`}
-                        >
-                          <RadioGroupItem value={opt.value} className="sr-only" />
-                          <span className="font-mono text-sm text-zinc-200">{opt.label}</span>
-                        </label>
-                      ))}
-                    </RadioGroup>
-                    <p className="font-mono text-xs text-zinc-600">TikTok/Reels max: 60s</p>
-                  </div>
-
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <Label className="font-mono text-sm text-zinc-400">Max Clips</Label>
-                      <span className="font-mono text-sm text-purple-400">{maxClips}</span>
-                    </div>
-                    <Slider
-                      value={[maxClips]}
-                      onValueChange={(v) => setMaxClips(v[0])}
-                      min={1}
-                      max={10}
-                      step={1}
-                      disabled={isSubmitting}
-                      className="w-full"
-                    />
-                    <p className="font-mono text-xs text-zinc-600">1 - 10 clips</p>
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <Label className="font-mono text-sm text-zinc-400">Aspect Ratio</Label>
-                  <RadioGroup
-                    value={aspectRatio}
-                    onValueChange={(v) => setAspectRatio(v as "9:16" | "16:9")}
-                    className="grid grid-cols-2 gap-3"
-                    disabled={isSubmitting}
-                  >
-                    {[
-                      { value: "9:16", label: "9:16", desc: "TikTok/Reels" },
-                      { value: "16:9", label: "16:9", desc: "YouTube" },
-                    ].map((ratio) => (
-                      <label
-                        key={ratio.value}
-                        className={`flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 p-3 transition-all ${
-                          aspectRatio === ratio.value
-                            ? "border-purple-500 bg-purple-500/10"
-                            : "border-zinc-800 bg-zinc-900/50 hover:border-zinc-700"
-                        }`}
-                      >
-                        <RadioGroupItem value={ratio.value} className="sr-only" />
-                        <span className="font-mono text-sm text-zinc-200">{ratio.label}</span>
-                        <span className="font-mono text-xs text-zinc-500">{ratio.desc}</span>
-                      </label>
-                    ))}
-                  </RadioGroup>
-                </div>
-
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="checkbox"
-                      id="add-captions"
-                      checked={addCaptions}
-                      onChange={(e) => setAddCaptions(e.target.checked)}
-                      disabled={isSubmitting}
-                      className="h-4 w-4 rounded border-zinc-700 bg-zinc-900 text-purple-600 focus:ring-purple-500"
-                    />
-                    <Label htmlFor="add-captions" className="font-mono text-sm text-zinc-300 cursor-pointer">
-                      <Captions className="inline w-4 h-4 mr-2" />
-                      Add AI-generated captions
-                    </Label>
-                  </div>
-
-                  {addCaptions && (
-                    <div className="mt-4 space-y-3 pl-7">
-                      <Label className="font-mono text-xs text-zinc-500">Caption Style</Label>
-                      <div className="grid grid-cols-2 gap-3">
-                        {[
-                          { value: "classic", label: "Classic", preview: "Aa", bg: "bg-black/80", text: "text-white", border: "" },
-                          { value: "bold", label: "Bold Box", preview: "Aa", bg: "bg-yellow-400", text: "text-black font-black", border: "" },
-                          { value: "outline", label: "Outline", preview: "Aa", bg: "bg-transparent", text: "text-white font-bold", border: "border-2 border-white" },
-                          { value: "glow", label: "Neon Glow", preview: "Aa", bg: "bg-purple-600", text: "text-white font-bold", border: "shadow-[0_0_20px_rgba(168,85,247,0.8)]" },
-                        ].map((style) => (
-                          <button
-                            key={style.value}
-                            type="button"
-                            onClick={() => setCaptionStyle(style.value as "classic" | "bold" | "outline" | "glow")}
-                            disabled={isSubmitting}
-                            className={`flex flex-col items-center justify-center rounded-lg border-2 p-3 transition-all ${
-                              captionStyle === style.value
-                                ? "border-purple-500 bg-purple-500/10"
-                                : "border-zinc-800 bg-zinc-900/50 hover:border-zinc-700"
-                            }`}
-                          >
-                            <div className={`px-3 py-1 rounded ${style.bg} ${style.text} ${style.border} text-sm mb-2`}>
-                              {style.preview}
-                            </div>
-                            <span className="font-mono text-xs text-zinc-400">{style.label}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
               </CardContent>
             </Card>
@@ -510,17 +411,31 @@ export default function OpusPage() {
 
             {clips.length > 0 && (
               <Card className="border-zinc-800 bg-zinc-900/50">
-                <CardHeader className="pb-4">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="flex items-center gap-2 font-mono text-lg text-zinc-200">
-                      <FileVideo className="h-5 w-5 text-purple-400" />
-                      Best Clips Found ({clips.length})
-                    </CardTitle>
-                  </div>
-                  <p className="font-mono text-xs text-zinc-500 mt-2">
-                    AI found these engaging moments. Click to watch or download.
-                  </p>
-                </CardHeader>
+                  <CardHeader className="pb-4">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="flex items-center gap-2 font-mono text-lg text-zinc-200">
+                        <FileVideo className="h-5 w-5 text-purple-400" />
+                        Best Clips Found ({clips.length})
+                      </CardTitle>
+                      {isCompleted && clips.length > 0 && (
+                        <Button
+                          onClick={handleDownloadAll}
+                          disabled={isDownloadingAll}
+                          className="bg-purple-600 hover:bg-purple-500 font-mono text-xs h-8 px-3"
+                        >
+                          {isDownloadingAll ? (
+                            <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                          ) : (
+                            <Download className="mr-2 h-3 w-3" />
+                          )}
+                          Download All (ZIP)
+                        </Button>
+                      )}
+                    </div>
+                    <p className="font-mono text-xs text-zinc-500 mt-2">
+                      AI found these engaging moments. Click to watch or download.
+                    </p>
+                  </CardHeader>
                 <CardContent className="space-y-4">
                     {clips.map((clip) => {
                       const videoId = jobStatus?.clips?.videoId;
@@ -581,48 +496,30 @@ export default function OpusPage() {
                                         onClick={async () => {
                                           setDownloadingClipId(clip.id);
                                           
-                                          // If it's a direct Klap URL, use it
-                                          if (clip.downloadUrl && (clip.downloadUrl.includes("klap.app") || clip.downloadUrl.includes("http"))) {
-                                            const a = document.createElement("a");
-                                            a.href = clip.downloadUrl;
-                                            a.target = "_blank";
-                                            a.download = clip.filename || `clip-${clip.id}.mp4`;
-                                            document.body.appendChild(a);
-                                            a.click();
-                                            document.body.removeChild(a);
-                                            setDownloadingClipId(null);
-                                            return;
-                                          }
-
-                                          const downloadUrl = `/api/opus/download-clip?videoId=${videoId}&start=${Math.floor(clip.start)}&end=${Math.floor(clip.end)}&json=true`;
-                                          try {
-                                            const res = await fetch(downloadUrl);
-                                            const data = await res.json();
-                                            
-                                            if (data.url) {
-                                              // Direct link download
-                                              const a = document.createElement("a");
-                                              a.href = data.url;
-                                              a.download = `clip-${videoId}-${Math.floor(clip.start)}-${Math.floor(clip.end)}.mp4`;
-                                              document.body.appendChild(a);
-                                              a.click();
-                                              document.body.removeChild(a);
-                                            } else if (data.error) {
-                                              alert(`Download failed: ${data.error}`);
-                                            } else {
-                                              // Fallback if it's still returning a stream
-                                              const streamRes = await fetch(downloadUrl.replace("&json=true", ""));
-                                              const blob = await streamRes.blob();
-                                              const url = URL.createObjectURL(blob);
-                                              const a = document.createElement("a");
-                                              a.href = url;
-                                              a.download = `clip-${videoId}-${Math.floor(clip.start)}-${Math.floor(clip.end)}.mp4`;
-                                              document.body.appendChild(a);
-                                              a.click();
-                                              document.body.removeChild(a);
-                                              URL.revokeObjectURL(url);
+                                            // If it's a direct Klap URL, use it
+                                            if (clip.downloadUrl && (clip.downloadUrl.includes("klap.app") || clip.downloadUrl.includes("http"))) {
+                                              downloadFile(clip.downloadUrl, clip.filename || `clip-${clip.id}.mp4`);
+                                              setDownloadingClipId(null);
+                                              return;
                                             }
-                                          } catch (err) {
+
+                                            const downloadUrl = `/api/opus/download-clip?videoId=${videoId}&start=${Math.floor(clip.start)}&end=${Math.floor(clip.end)}&json=true`;
+                                            try {
+                                              const res = await fetch(downloadUrl);
+                                              const data = await res.json();
+                                              
+                                              if (data.url) {
+                                                // Direct link download
+                                                downloadFile(data.url, `clip-${videoId}-${Math.floor(clip.start)}-${Math.floor(clip.end)}.mp4`);
+                                              } else if (data.error) {
+                                                alert(`Download failed: ${data.error}`);
+                                              } else {
+                                                // Fallback if it's still returning a stream
+                                                const finalDownloadUrl = downloadUrl.replace("&json=true", "");
+                                                downloadFile(finalDownloadUrl, `clip-${videoId}-${Math.floor(clip.start)}-${Math.floor(clip.end)}.mp4`);
+                                              }
+                                            } catch (err) {
+
                                             console.error("Download error:", err);
                                             alert("Download failed. Please try again.");
                                           } finally {
@@ -676,7 +573,7 @@ export default function OpusPage() {
         )}
 
         <p className="mt-8 text-center font-mono text-[10px] text-zinc-600 uppercase tracking-widest">
-          Powered by AI • Like Vizard.ai
+          Powered by Vizard Studio
         </p>
       </div>
     </div>

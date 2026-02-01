@@ -19,7 +19,7 @@ import { Button } from "@/components/ui/button";
 const navItems = [
   { name: "Home", href: "/", icon: Home },
   { name: "Invideo Hub", href: "/invideo", icon: Video, color: "text-purple-400" },
-  { name: "Opus Clips", href: "/opus", icon: Scissors, color: "text-blue-400" },
+  { name: "Vizard Studio", href: "/opus", icon: Scissors, color: "text-blue-400" },
   { name: "Suno Studio", href: "/suno", icon: Music, color: "text-pink-400" },
 ];
 

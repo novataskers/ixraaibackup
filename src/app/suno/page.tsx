@@ -40,19 +40,14 @@ import { cn } from "@/lib/utils";
 import { generateLyricVideo } from "@/lib/video-generator";
 
 const genres = ["Lo-fi", "Synthwave", "Cyberpunk", "Classical", "Hip Hop", "Rock", "Acoustic"];
-const voices = [
-  { name: "Serena", type: "Vocalist", icon: Mic2 },
-  { name: "Marcus", type: "Rapper", icon: Mic2 },
-  { name: "Luna", type: "Pop Star", icon: Mic2 },
-];
+const songStyles = ["Slow", "Fast", "Beat", "Up-beat", "Rock", "Pop", "Jazz", "Emotional", "Energetic"];
 
 export default function SunoPage() {
   const router = useRouter();
   const [isPlaying, setIsPlaying] = useState(false);
-  const [activeVoice, setActiveVoice] = useState("Serena");
   const [prompt, setPrompt] = useState("");
-  const [voiceText, setVoiceText] = useState("");
   const [selectedGenre, setSelectedGenre] = useState("Lo-fi");
+  const [selectedStyles, setSelectedStyles] = useState<string[]>([]);
   const [energy, setEnergy] = useState(75);
   const [isLoading, setIsLoading] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
@@ -340,7 +335,10 @@ const item = updated.find(i => i.id === historyItemId);
       const res = await fetch("/api/suno/lyrics", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt })
+        body: JSON.stringify({ 
+          prompt,
+          style: selectedStyles.join(", ")
+        })
       });
       const data = await res.json();
       if (data.lyrics) {
@@ -395,7 +393,7 @@ const item = updated.find(i => i.id === historyItemId);
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
           prompt, 
-          genre: selectedGenre, 
+          genre: [selectedGenre, ...selectedStyles].filter(Boolean).join(", "), 
           energy 
         })
       });
@@ -431,65 +429,6 @@ const item = updated.find(i => i.id === historyItemId);
         item.id === historyId ? { ...item, status: 'error' } : item
       ));
       toast.error("An error occurred");
-    }
-  };
-
-  const handleGenerateVoice = async () => {
-    if (!voiceText) {
-      toast.error("Please enter some text for the voice");
-      return;
-    }
-
-    setIsLoading(true);
-    const tempId = `voice-temp-${Date.now()}`;
-    const generatingVoice = {
-      id: tempId,
-      title: `Voice: ${voiceText.slice(0, 20)}...`,
-      status: 'generating',
-      genre: 'Voice Clone',
-      timestamp: new Date().toISOString(),
-      lyrics: voiceText,
-      audioUrl: "",
-      imageUrl: ""
-    };
-    setCurrentSong(generatingVoice);
-
-    try {
-      const res = await fetch("/api/suno/voice", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          text: voiceText, 
-          voiceName: activeVoice 
-        })
-      });
-      
-      const data = await res.json();
-      if (data.audio_url) {
-        const newVoice = {
-          id: `voice-${Date.now()}`,
-          title: `Voice: ${voiceText.slice(0, 20)}...`,
-          audioUrl: data.audio_url,
-          imageUrl: "",
-          lyrics: voiceText,
-          duration: 0,
-          currentTime: 0,
-          status: 'complete',
-          genre: 'Voice Clone',
-          timestamp: new Date().toISOString()
-        };
-        setCurrentSong(newVoice);
-        setHistory(prev => [newVoice, ...prev]);
-        toast.success("Voice generated successfully!");
-      } else {
-        console.error("Voice Generation Failed:", data);
-        toast.error(data.message || data.error || "Failed to generate voice");
-      }
-    } catch (error: any) {
-      console.error("Voice Generation Error:", error);
-      toast.error(`An error occurred: ${error.message || 'Unknown error'}`);
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -546,6 +485,24 @@ const item = updated.find(i => i.id === historyItemId);
     return `${minutes}:${seconds.toString().padStart(2, "0")}`;
   };
 
+  const downloadFile = (url: string, filename: string) => {
+    if (!url) return;
+    
+    // For external URLs, use the proxy to force download
+    if (url.startsWith("http")) {
+      const proxyUrl = `/api/proxy?url=${encodeURIComponent(url)}&filename=${encodeURIComponent(filename)}&download=true`;
+      window.location.href = proxyUrl;
+      return;
+    }
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="p-8 lg:p-12">
       {currentSong.audioUrl && (
@@ -571,19 +528,39 @@ const item = updated.find(i => i.id === historyItemId);
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         <div className="lg:col-span-7">
           <Card className="bg-zinc-900/50 border-zinc-800 p-8 h-full">
-            <Tabs defaultValue="text-music" className="space-y-8">
-              <TabsList className="bg-zinc-950 border border-zinc-800 w-full justify-start overflow-x-auto">
-                <TabsTrigger value="text-music" className="gap-2 data-[state=active]:bg-pink-600">
-                  <FileText className="w-4 h-4" /> Text to Music
-                </TabsTrigger>
-                <TabsTrigger value="voice-clone" className="gap-2 data-[state=active]:bg-pink-600">
-                  <Mic2 className="w-4 h-4" /> Voice Cloning
-                </TabsTrigger>
-              </TabsList>
+            <div className="space-y-8">
+              <div className="flex items-center gap-2 text-pink-500 font-bold uppercase tracking-widest text-xs mb-4">
+                <FileText className="w-4 h-4" /> Text to Music
+              </div>
 
-              <TabsContent value="text-music" className="space-y-8">
+              <div className="space-y-8">
                 <div className="space-y-4">
-                  <Label className="text-zinc-400 uppercase text-[10px] tracking-widest font-bold">Song Prompt / Lyrics</Label>
+                  <div className="flex justify-between items-end">
+                    <Label className="text-zinc-400 uppercase text-[10px] tracking-widest font-bold">Song Prompt / Lyrics</Label>
+                    <div className="flex flex-wrap gap-2 mb-2">
+                      {songStyles.map((style) => (
+                        <Badge
+                          key={style}
+                          variant={selectedStyles.includes(style) ? "default" : "outline"}
+                          className={cn(
+                            "cursor-pointer transition-all text-[10px] px-2 py-0 h-5",
+                            selectedStyles.includes(style) 
+                              ? "bg-pink-500 text-white border-pink-500 hover:bg-pink-600" 
+                              : "text-zinc-500 border-zinc-800 hover:border-zinc-700 bg-transparent"
+                          )}
+                          onClick={() => {
+                            setSelectedStyles(prev => 
+                              prev.includes(style) 
+                                ? prev.filter(s => s !== style) 
+                                : [...prev, style]
+                            );
+                          }}
+                        >
+                          {style}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
                   <textarea 
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
@@ -603,8 +580,6 @@ const item = updated.find(i => i.id === historyItemId);
                     <span className="text-xs text-zinc-500">{prompt.length} / 2000</span>
                   </div>
                 </div>
-
-                {/* Genre and Energy sections removed */}
 
                 <div className="space-y-4">
                   <Button 
@@ -639,52 +614,8 @@ const item = updated.find(i => i.id === historyItemId);
                     </div>
                   )}
                 </div>
-              </TabsContent>
-
-              <TabsContent value="voice-clone" className="space-y-8">
-                <div className="space-y-4">
-                  <textarea 
-                    value={voiceText}
-                    onChange={(e) => setVoiceText(e.target.value)}
-                    className="w-full h-48 bg-zinc-950/50 border border-zinc-800 rounded-2xl p-6 text-white focus:outline-none focus:ring-2 focus:ring-pink-500/50 transition-all resize-none font-mono text-sm leading-relaxed"
-                    placeholder="Type the text you want the AI to speak or sing..."
-                  />
-                </div>
-
-                <div className="space-y-4">
-                  <Label className="text-zinc-400 uppercase text-[10px] tracking-widest font-bold">Select AI Voice</Label>
-                  <div className="grid grid-cols-3 gap-4">
-                    {voices.map(voice => (
-                      <button
-                        key={voice.name}
-                        onClick={() => setActiveVoice(voice.name)}
-                        className={cn(
-                          "flex flex-col items-center gap-3 p-4 rounded-2xl border transition-all",
-                          activeVoice === voice.name 
-                            ? "bg-pink-600 border-pink-500 text-white" 
-                            : "bg-zinc-950 border-zinc-800 text-zinc-400 hover:border-zinc-700"
-                        )}
-                      >
-                        <voice.icon className="w-6 h-6" />
-                        <div className="text-center">
-                          <div className="text-xs font-bold">{voice.name}</div>
-                          <div className="text-[10px] opacity-70">{voice.type}</div>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <Button 
-                  onClick={handleGenerateVoice}
-                  disabled={isLoading}
-                  className="w-full h-16 rounded-2xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold text-lg gap-3 disabled:opacity-50"
-                >
-                  {isLoading ? <Loader2 className="w-6 h-6 animate-spin" /> : <Mic2 className="w-6 h-6" />}
-                  {isLoading ? "Generating Voice..." : "Generate AI Voice"}
-                </Button>
-              </TabsContent>
-            </Tabs>
+              </div>
+            </div>
           </Card>
         </div>
 
@@ -692,7 +623,7 @@ const item = updated.find(i => i.id === historyItemId);
           <Card className="bg-zinc-950 border-zinc-800 p-8 flex flex-col items-center text-center overflow-hidden relative">
             <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-pink-500 via-purple-500 to-pink-500 animate-gradient-x" />
             
-            <motion.div 
+              <motion.div 
               animate={{ rotate: isPlaying ? 360 : 0 }}
               transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
               className="w-48 h-48 rounded-full border-8 border-zinc-900 shadow-[0_0_50px_-10px_rgba(236,72,153,0.3)] bg-zinc-900 flex items-center justify-center mb-8 relative overflow-hidden"
@@ -703,8 +634,6 @@ const item = updated.find(i => i.id === historyItemId);
                   alt={currentSong.title}
                   className="absolute inset-0 w-full h-full object-cover opacity-60"
                 />
-              ) : currentSong.genre === 'Voice Clone' ? (
-                <Mic2 className="w-32 h-32 text-pink-500 opacity-40" />
               ) : (
                 <Disc className="w-32 h-32 text-zinc-800 opacity-20" />
               )}
@@ -822,11 +751,16 @@ setActiveVersion('v35');
                 >
                   {isVideoLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Video className="w-5 h-5" />}
                 </Button>
-                <Button variant="ghost" size="icon" className="text-zinc-400 hover:text-white" asChild disabled={!currentSong.audioUrl}>
-                  <a href={currentSong.audioUrl} download={`${currentSong.title}.mp3`}>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="text-zinc-400 hover:text-white" 
+                    onClick={() => downloadFile(currentSong.audioUrl, `${currentSong.title}.mp3`)}
+                    disabled={!currentSong.audioUrl}
+                  >
                     <Download className="w-5 h-5" />
-                  </a>
-                </Button>
+                  </Button>
+
               </div>
             </div>
 
@@ -854,11 +788,9 @@ setActiveVersion('v35');
                 <Button 
                   variant="outline" 
                   className="w-full gap-2 border-zinc-800 hover:bg-zinc-900" 
-                  asChild
+                  onClick={() => downloadFile(generatedVideoUrl, `${currentSong.title || 'lyric-video'}.mp4`)}
                 >
-                <a href={generatedVideoUrl} download={`${currentSong.title || 'lyric-video'}.mp4`}>
-                      <Download className="w-4 h-4" /> Download MP4 Video
-                  </a>
+                  <Download className="w-4 h-4" /> Download MP4 Video
                 </Button>
               </div>
             )}
@@ -920,8 +852,6 @@ onClick={() => {
                       <div className="w-10 h-10 rounded-lg bg-zinc-900 flex items-center justify-center overflow-hidden">
                         {item.status === 'generating' ? (
                           <Loader2 className="w-5 h-5 animate-spin text-pink-500" />
-                        ) : item.genre === 'Voice Clone' ? (
-                          <Mic2 className="w-5 h-5 text-pink-500" />
                         ) : item.imageUrl ? (
                           <img src={item.imageUrl} alt="" className="w-full h-full object-cover" />
                         ) : (

@@ -3,12 +3,13 @@ import { NextResponse } from 'next/server';
 export async function POST(req: Request) {
   try {
     // Removed Supabase/Auth check
-    const { prompt } = await req.json();
+    const { prompt, style } = await req.json();
     const mistralApiKey = process.env.MISTRAL_API_KEY;
 
     if (mistralApiKey) {
       try {
         console.log('Generating lyrics with Mistral AI');
+        const stylePrompt = style ? ` in ${style} style` : '';
         const response = await fetch('https://api.mistral.ai/v1/chat/completions', {
           method: 'POST',
           headers: {
@@ -20,7 +21,7 @@ export async function POST(req: Request) {
             messages: [
               {
                 role: 'user',
-                content: `Write catchy song lyrics based on this prompt: "${prompt}". 
+                content: `Write catchy song lyrics based on this prompt: "${prompt}"${stylePrompt}. 
                 Structure it with [Verse 1], [Chorus], [Verse 2], [Chorus], [Bridge], [Chorus]. 
                 Only return the lyrics text, nothing else.`
               }

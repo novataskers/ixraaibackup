@@ -25,6 +25,49 @@ export async function GET(
       });
     }
 
+    if (id.startsWith("freepik_style_")) {
+      const taskId = id.replace("freepik_style_", "");
+      const freepikApiKey = process.env.FREEPIK_API_KEY;
+
+      if (!freepikApiKey) {
+        return NextResponse.json({ error: "FREEPIK_API_KEY not configured" }, { status: 500 });
+      }
+
+      const response = await fetch(`https://api.freepik.com/v1/ai/image-style-transfer/${taskId}`, {
+        headers: {
+          "x-freepik-api-key": freepikApiKey,
+        },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`Freepik Status Error (${response.status}):`, errorText);
+        throw new Error(`Failed to fetch Freepik status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const taskData = data.data;
+
+      let normalizedStatus = "processing";
+      let output = null;
+      let error = null;
+
+      if (taskData.status === "COMPLETED") {
+        normalizedStatus = "succeeded";
+        output = taskData.generated[0];
+      } else if (taskData.status === "FAILED") {
+        normalizedStatus = "failed";
+        error = taskData.error?.message || "Generation failed on Freepik";
+      }
+
+      return NextResponse.json({
+        status: normalizedStatus,
+        output,
+        error,
+        success: true,
+      });
+    }
+
     if (id.startsWith("kie_")) {
       const taskId = id.replace("kie_", "");
       const kieApiKey = process.env.KIE_VIDEO_API_KEY || process.env.KIE_AI_API_KEY;

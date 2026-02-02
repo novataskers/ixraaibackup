@@ -8,7 +8,7 @@ A comprehensive AI-powered hub called Invideo AI Studio that provides multiple c
 - **API Clients**: Axios, Form-data
   - **Services**:
     - **Video Generation**: KIE AI (Grok Imagine)
-    - **Image Generation**: Freepik AI
+    - **Image & Avatar Generation**: Freepik AI (Text-to-Image & Image Style Transfer)
     - **Image Upscaling**: Cloudinary
     - **Background Removal**: Remove.bg / Cloudinary (depending on route)
     - **Database**: Supabase
@@ -31,5 +31,5 @@ A comprehensive AI-powered hub called Invideo AI Studio that provides multiple c
 
 ## Common Patterns
 - **Video Generation**: Uses KIE AI's task API (Grok Imagine) with polling for completion.
-- **Image Generation**: Integrates with Freepik API for high-fidelity text-to-image synthesis.
+- **Image & Avatar Generation**: Integrates with Freepik API for high-fidelity text-to-image synthesis and stylized portrait transformations.
 - **Image Processing**: Integrates with Cloudinary for upscaling and Remove.bg for background removal.

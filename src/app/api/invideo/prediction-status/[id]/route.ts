@@ -25,15 +25,21 @@ export async function GET(
       });
     }
 
-    if (id.startsWith("freepik_style_")) {
-      const taskId = id.replace("freepik_style_", "");
+    if (id.startsWith("freepik_avatar_") || id.startsWith("freepik_style_")) {
+      const isAvatar = id.startsWith("freepik_avatar_");
+      const taskId = isAvatar ? id.replace("freepik_avatar_", "") : id.replace("freepik_style_", "");
       const freepikApiKey = process.env.FREEPIK_API_KEY;
 
       if (!freepikApiKey) {
         return NextResponse.json({ error: "FREEPIK_API_KEY not configured" }, { status: 500 });
       }
 
-      const response = await fetch(`https://api.freepik.com/v1/ai/image-style-transfer/${taskId}`, {
+      // Use different status endpoint based on the task type
+      const endpoint = isAvatar 
+        ? `https://api.freepik.com/v1/ai/text-to-image/flux-kontext-pro/${taskId}`
+        : `https://api.freepik.com/v1/ai/image-style-transfer/${taskId}`;
+
+      const response = await fetch(endpoint, {
         headers: {
           "x-freepik-api-key": freepikApiKey,
         },

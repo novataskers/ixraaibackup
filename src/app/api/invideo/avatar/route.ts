@@ -13,35 +13,32 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Freepik API key not configured' }, { status: 500 });
     }
 
-    console.log('Starting Freepik AI Avatar generation (Image Style Transfer)...');
+    console.log('Starting Freepik AI Avatar generation (Flux Kontext Pro)...');
 
-    // Prepare style transfer payload
-    // We try to match the engine based on user prompt
-    let engine = "balanced";
+    // Prepare enhanced prompt based on style
+    let enhancedPrompt = styleDescription;
     const promptLower = styleDescription.toLowerCase();
     
     if (promptLower.includes("anime") || promptLower.includes("ghibli") || promptLower.includes("manga")) {
-      engine = "colorful_anime";
+      enhancedPrompt = `Masterpiece anime style, ${styleDescription}, high resolution, vibrant colors, clean lines`;
     } else if (promptLower.includes("caricature") || promptLower.includes("cartoon") || promptLower.includes("funny")) {
-      engine = "caricature";
+      enhancedPrompt = `Funny caricature style, ${styleDescription}, expressive features, colorful, stylized 3d`;
     } else if (promptLower.includes("realistic") || promptLower.includes("photo") || promptLower.includes("8k")) {
-      engine = "super_real";
+      enhancedPrompt = `Photorealistic 8k portrait, ${styleDescription}, highly detailed, cinematic lighting, professional photography`;
     } else if (promptLower.includes("3d") || promptLower.includes("pixar") || promptLower.includes("render")) {
-      engine = "balanced"; // Balanced works best for 3D/Pixar in style transfer
+      enhancedPrompt = `High-end 3D render, Pixar style, ${styleDescription}, soft lighting, cute stylized proportions, 8k resolution`;
     }
 
     const payload = {
-      image: image, // Freepik accepts base64 data URIs
-      prompt: styleDescription,
-      is_portrait: true,
-      portrait_style: "pop",
-      portrait_beautifier: "beautify_face",
-      engine: engine,
-      style_strength: 85,
-      structure_strength: 70
+      prompt: enhancedPrompt,
+      input_image: image, // Freepik accepts base64 data URIs
+      prompt_upsampling: true,
+      guidance: 3.5,
+      steps: 30,
+      aspect_ratio: "square_1_1"
     };
 
-    const response = await fetch("https://api.freepik.com/v1/ai/image-style-transfer", {
+    const response = await fetch("https://api.freepik.com/v1/ai/text-to-image/flux-kontext-pro", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -61,9 +58,9 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       success: true,
-      id: `freepik_style_${taskId}`,
+      id: `freepik_avatar_${taskId}`,
       status: 'processing',
-      note: "Generating via Freepik Style Transfer"
+      note: "Generating via Freepik Flux Kontext Pro"
     });
 
   } catch (error: any) {

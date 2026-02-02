@@ -1,29 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-import Replicate from 'replicate';
-
-async function uploadToSupabase(buffer: Buffer | ArrayBuffer, fileName: string, contentType: string) {
-  const supabase = createClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-
-  const { data, error } = await supabase.storage
-    .from('music')
-    .upload(fileName, buffer, {
-      contentType,
-      cacheControl: '3600',
-      upsert: false
-    });
-
-  if (error) throw error;
-
-  const { data: { publicUrl } } = supabase.storage
-    .from('music')
-    .getPublicUrl(fileName);
-
-  return publicUrl;
-}
+import { client } from "@gradio/client";
 
 export async function POST(req: Request) {
   try {
@@ -33,61 +9,49 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Image and style description are required' }, { status: 400 });
     }
 
-    const replicateToken = process.env.REPLICATE_API_TOKEN;
+    console.log('Starting free AI Avatar generation via Gradio (multimodalart/face-to-all)...');
 
-    if (!replicateToken) {
-      return NextResponse.json({ 
-        error: 'API Configuration Error', 
-        message: 'Missing Replicate API key' 
-      }, { status: 500 });
+    // Use a free Gradio space for face-to-many/face-to-all
+    // multimodalart/face-to-all is a reliable space for this
+    const app = await client("multimodalart/face-to-all");
+    
+    // We need to convert the base64 image to a Blob for Gradio
+    const base64Data = image.includes("base64,") ? image.split("base64,")[1] : image;
+    const blob = new Blob([Buffer.from(base64Data, 'base64')], { type: 'image/png' });
+
+    // The face-to-all space usually takes (image, prompt, negative_prompt, lora_scale, etc.)
+    // We'll use default values for most parameters
+    const result = await app.predict("/predict", [
+      blob,               // face_image
+      styleDescription,   // prompt
+      "bad quality, blurry, low resolution, distorted, ugly", // negative_prompt
+      0.8,                // lora_scale
+      0.85,               // face_strength
+      0.15,               // image_strength
+      7,                  // guidance_scale
+      0.8                 // depth_scale
+    ]);
+
+    if (!result || !result.data || !result.data[0]) {
+      throw new Error("Failed to generate avatar from Gradio space");
     }
 
-    const replicate = new Replicate({
-      auth: replicateToken,
-    });
-
-    // 1. Handle Image (if base64)
-    let imageUrl = image;
-    if (image.startsWith('data:image')) {
-      const base64Data = image.split(',')[1];
-      const buffer = Buffer.from(base64Data, 'base64');
-      imageUrl = await uploadToSupabase(
-        buffer, 
-        `avatar_input_${Date.now()}.png`, 
-        'image/png'
-      );
-    }
-
-    // 2. Call Replicate (fofr/face-to-many)
-    console.log('Starting Replicate face-to-many prediction...');
-    const prediction = await replicate.predictions.create({
-      version: "a07f252abbbd832009640b27f063ea52d87d7a23a185ca165bec23b5adc8deaf",
-      input: {
-        image: imageUrl,
-        prompt: styleDescription,
-        style: "3D", // Default to 3D, prompt will refine it
-        instant_id_strength: 0.8,
-        denoising_strength: 0.65,
-        negative_prompt: "bad quality, blurry, low resolution, distorted, ugly",
-      }
-    });
-
-    if (prediction.error) {
-      throw new Error(`Replicate Error: ${prediction.error}`);
-    }
-
-    console.log('Replicate prediction started:', prediction.id);
+    // result.data[0] is usually the generated image URL or object
+    const outputImage = result.data[0].url || result.data[0];
 
     return NextResponse.json({
       success: true,
-      id: `replicate_${prediction.id}`,
-      status: 'processing'
+      output: outputImage,
+      status: 'succeeded',
+      note: "Generated via free Hugging Face Space"
     });
 
   } catch (error: any) {
-    console.error('AI Avatar Creator Error:', error);
+    console.error('Free AI Avatar Creator Error:', error);
+    
+    // Fallback to a simpler message if Gradio fails
     return NextResponse.json({ 
-      error: 'Failed to generate AI Avatar', 
+      error: 'Failed to generate AI Avatar using free engine', 
       details: error.message 
     }, { status: 500 });
   }

@@ -9,8 +9,8 @@ export async function GET(
   try {
     const id = (await params).id;
 
-    if (id.startsWith("pika_")) {
-      const taskId = id.replace("pika_", "");
+    if (id.startsWith("pika_") || id.startsWith("gradio_")) {
+      const taskId = id.replace("pika_", "").replace("gradio_", "");
       const job = activeJobs.get(taskId);
 
       if (!job) {

@@ -521,7 +521,7 @@ export default function InvideoPage() {
                       </h2>
                       <div className="flex gap-2">
                         <Badge className="bg-purple-600/20 text-purple-400 border-purple-500/30">
-                          Free Pika Playground Engine
+                          Free Community Engine (Gradio)
                         </Badge>
                       </div>
                     </div>
@@ -623,12 +623,13 @@ export default function InvideoPage() {
                 {activeTab === "background" && (
                   <div className="space-y-8 flex-1 flex flex-col">
                     <div className="flex items-center justify-between mb-2">
-                      <h2 className="text-2xl font-bold text-white">
-                        Background Remover
-                      </h2>
-                      <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30">
-                        New Tool
-                      </Badge>
+                        <h2 className="text-2xl font-bold text-white">
+                          Background Remover
+                        </h2>
+                        <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30">
+                          Free Community Engine
+                        </Badge>
+
                     </div>
 
                     <div className="flex-1 flex flex-col gap-6">
@@ -1032,7 +1033,7 @@ export default function InvideoPage() {
                           AI Avatar Creator
                         </h2>
                         <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
-                          Face-to-Many Style Engine
+                          Free Community Engine
                         </Badge>
                       </div>
 

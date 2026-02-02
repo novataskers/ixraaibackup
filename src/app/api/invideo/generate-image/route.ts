@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
   try {
-    const { prompt, negative_prompt, num_images = 1, size = "square_1_1" } = await req.json();
+    const { prompt, negative_prompt, num_images = 1, size = "square_1_1", style } = await req.json();
 
     if (!prompt) {
       return NextResponse.json(
@@ -19,18 +19,24 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const body: any = {
+      prompt,
+      negative_prompt,
+      num_images,
+      image: { size },
+    };
+
+    if (style) {
+      body.styling = { style };
+    }
+
     const response = await fetch("https://api.freepik.com/v1/ai/text-to-image", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "x-freepik-api-key": apiKey,
       },
-      body: JSON.stringify({
-        prompt,
-        negative_prompt,
-        num_images,
-        image: { size },
-      }),
+      body: JSON.stringify(body),
     });
 
     const data = await response.json();

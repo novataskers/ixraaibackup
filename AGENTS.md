@@ -6,12 +6,13 @@ A comprehensive AI-powered hub called Invideo AI Studio that provides multiple c
 - **Runtime**: Bun
 - **Styling**: Tailwind CSS, Framer Motion, Lucide React
 - **API Clients**: Axios, Form-data
-- **Services**:
-  - **Video Generation**: KIE AI (Sora 2)
-  - **Image Upscaling**: Cloudinary
-  - **Background Removal**: Remove.bg / Cloudinary (depending on route)
-  - **Database**: Supabase
-  - **Authentication**: Supabase Auth
+  - **Services**:
+    - **Video Generation**: KIE AI (Grok Imagine)
+    - **Image Generation**: Freepik AI
+    - **Image Upscaling**: Cloudinary
+    - **Background Removal**: Remove.bg / Cloudinary (depending on route)
+    - **Database**: Supabase
+    - **Authentication**: Supabase Auth
 
 ## Architecture
 - `src/app/invideo`: Main hub page with tabbed interface for different tools.
@@ -29,5 +30,6 @@ A comprehensive AI-powered hub called Invideo AI Studio that provides multiple c
 - Wrap `useSearchParams` in `Suspense` boundaries.
 
 ## Common Patterns
-- **Video Generation**: Uses KIE AI's task API with polling for completion.
+- **Video Generation**: Uses KIE AI's task API (Grok Imagine) with polling for completion.
+- **Image Generation**: Integrates with Freepik API for high-fidelity text-to-image synthesis.
 - **Image Processing**: Integrates with Cloudinary for upscaling and Remove.bg for background removal.

@@ -93,6 +93,7 @@ export default function InvideoPage() {
 
   // Image Generation State
   const [imagePrompt, setImagePrompt] = useState("");
+  const [imageStyle, setImageStyle] = useState<string>("any");
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [generatedImages, setGeneratedImages] = useState<string[]>([]);
   const [imageError, setImageError] = useState<string | null>(null);
@@ -332,7 +333,10 @@ export default function InvideoPage() {
       const response = await fetch("/api/invideo/generate-image", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: imagePrompt }),
+        body: JSON.stringify({ 
+          prompt: imagePrompt,
+          style: imageStyle === "any" ? undefined : imageStyle
+        }),
       });
 
       const data = await response.json();
@@ -753,19 +757,53 @@ export default function InvideoPage() {
                             </div>
                           </div>
                         ) : (
-                          <>
-                            <div className="space-y-3">
-                              <Label className="text-zinc-400 uppercase text-[10px] tracking-widest font-bold">
-                                Your Image Prompt
-                              </Label>
-                              <textarea
-                                className="w-full h-32 bg-zinc-950/50 border border-zinc-800 rounded-xl p-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all resize-none"
-                                placeholder="Describe the image you want to generate in detail..."
-                                value={imagePrompt}
-                                onChange={(e) => setImagePrompt(e.target.value)}
-                                disabled={isGeneratingImage}
-                              />
-                            </div>
+                            <>
+                              <div className="space-y-6">
+                                <div className="space-y-3">
+                                  <Label className="text-zinc-400 uppercase text-[10px] tracking-widest font-bold">
+                                    1. Your Image Prompt
+                                  </Label>
+                                  <textarea
+                                    className="w-full h-32 bg-zinc-950/50 border border-zinc-800 rounded-xl p-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all resize-none"
+                                    placeholder="Describe the image you want to generate in detail..."
+                                    value={imagePrompt}
+                                    onChange={(e) => setImagePrompt(e.target.value)}
+                                    disabled={isGeneratingImage}
+                                  />
+                                </div>
+
+                                <div className="space-y-3">
+                                  <Label className="text-zinc-400 uppercase text-[10px] tracking-widest font-bold">
+                                    2. Select Style (Optional)
+                                  </Label>
+                                  <div className="flex flex-wrap gap-2">
+                                    {[
+                                      { id: "any", name: "Default" },
+                                      { id: "anime", name: "Anime" },
+                                      { id: "portrait", name: "Portrait" },
+                                      { id: "3d", name: "3D Render" },
+                                      { id: "cyberpunk", name: "Cyberpunk" },
+                                      { id: "watercolor", name: "Watercolor" },
+                                      { id: "oil_painting", name: "Oil Painting" },
+                                      { id: "illustration", name: "Illustration" },
+                                    ].map((s) => (
+                                      <button
+                                        key={s.id}
+                                        onClick={() => setImageStyle(s.id)}
+                                        className={cn(
+                                          "px-4 py-2 rounded-full text-xs font-medium transition-all",
+                                          imageStyle === s.id
+                                            ? "bg-blue-600 text-white shadow-lg shadow-blue-900/40"
+                                            : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
+                                        )}
+                                      >
+                                        {s.name}
+                                      </button>
+                                    ))}
+                                  </div>
+                                </div>
+                              </div>
+
 
                             {imageError && (
                               <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 flex items-center gap-3 text-red-400">

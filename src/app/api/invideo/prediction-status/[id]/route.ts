@@ -59,6 +59,7 @@ export async function GET(
       let output = null;
       let error = null;
       let progress = info.progress || 0;
+      let message = info.state === "waiting" ? "In queue..." : "Generating video...";
 
       // Sora 2 and modern KIE models use 'state'
       if (info.state === "success") {
@@ -102,6 +103,7 @@ export async function GET(
         output,
         error,
         progress,
+        message,
         success: true,
       });
     }

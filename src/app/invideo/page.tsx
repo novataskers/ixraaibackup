@@ -91,6 +91,20 @@ export default function InvideoPage() {
   const [progress, setProgress] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
 
+  // Fallback progress simulation for models that don't provide granular progress
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isGenerating && progress < 90) {
+      interval = setInterval(() => {
+        setProgress((prev) => {
+          if (prev < 90) return prev + 1;
+          return prev;
+        });
+      }, 1500); // Increments every 1.5s as a fallback
+    }
+    return () => clearInterval(interval);
+  }, [isGenerating, progress]);
+
   // Background Editor State
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [processedImage, setProcessedImage] = useState<string | null>(null);
@@ -263,8 +277,12 @@ export default function InvideoPage() {
             );
           }
 
-          if (statusData.progress !== undefined) {
+          if (statusData.progress !== undefined && statusData.progress > progress) {
             setProgress(statusData.progress);
+          }
+
+          if (statusData.message) {
+            setStatus(statusData.message);
           }
 
           if (statusData.status === "succeeded") {
@@ -599,34 +617,32 @@ export default function InvideoPage() {
                             </div>
                           )}
 
-                            <div className="mt-auto flex flex-col gap-4">
-                              {isGenerating && (
-                                <div className="space-y-4 mb-2">
-                                  <div className="flex items-center justify-center gap-3 text-purple-400">
-                                    <Loader2 className="w-5 h-5 animate-spin" />
-                                    <span className="text-sm font-medium animate-pulse">
-                                      {status}
-                                    </span>
-                                  </div>
-                                  
-                                  {progress > 0 && (
+                              <div className="mt-auto flex flex-col gap-4">
+                                {isGenerating && (
+                                  <div className="space-y-4 mb-2">
+                                    <div className="flex items-center justify-center gap-3 text-purple-400">
+                                      <Loader2 className="w-5 h-5 animate-spin" />
+                                      <span className="text-sm font-medium animate-pulse">
+                                        {status}
+                                      </span>
+                                    </div>
+                                    
                                     <div className="space-y-2">
                                       <div className="flex justify-between text-[10px] text-zinc-500 font-bold uppercase tracking-wider">
                                         <span>Progress</span>
-                                        <span>{progress}%</span>
+                                        <span>{Math.max(progress, 5)}%</span>
                                       </div>
                                       <div className="h-1.5 w-full bg-zinc-950 rounded-full overflow-hidden border border-zinc-800">
                                         <motion.div 
                                           className="h-full bg-purple-600 shadow-[0_0_10px_rgba(147,51,234,0.5)]"
                                           initial={{ width: 0 }}
-                                          animate={{ width: `${progress}%` }}
+                                          animate={{ width: `${Math.max(progress, 5)}%` }}
                                           transition={{ duration: 0.5 }}
                                         />
                                       </div>
                                     </div>
-                                  )}
-                                </div>
-                              )}
+                                  </div>
+                                )}
                               <Button
                               onClick={handleGenerateVideo}
                               disabled={isGenerating || !prompt}

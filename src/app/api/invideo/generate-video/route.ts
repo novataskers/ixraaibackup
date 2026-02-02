@@ -21,10 +21,10 @@ export async function POST(req: Request) {
       },
       body: JSON.stringify({
         model: "sora-2-text-to-video",
-        input: {
-          prompt: prompt,
-          aspect_ratio: "16:9"
-        }
+          input: {
+            prompt: prompt,
+            aspect_ratio: "landscape"
+          }
       }),
     });
 

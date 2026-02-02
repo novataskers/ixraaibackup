@@ -27,13 +27,14 @@ export async function GET(
 
     if (id.startsWith("kie_")) {
       const taskId = id.replace("kie_", "");
-      const kieApiKey = process.env.KIE_AI_API_KEY;
+      const kieApiKey = process.env.KIE_VIDEO_API_KEY || process.env.KIE_AI_API_KEY;
 
       if (!kieApiKey) {
-        return NextResponse.json({ error: "KIE_AI_API_KEY not configured" }, { status: 500 });
+        return NextResponse.json({ error: "KIE API key not configured" }, { status: 500 });
       }
 
-      const response = await fetch(`https://api.kie.ai/api/v1/veo/record-info?taskId=${taskId}`, {
+      // Using the general record-info endpoint as it works for all models including sora
+      const response = await fetch(`https://api.kie.ai/api/v1/jobs/record-info?taskId=${taskId}`, {
         headers: {
           "Authorization": `Bearer ${kieApiKey}`,
         },
@@ -54,11 +55,20 @@ export async function GET(
       let output = null;
       let error = null;
 
-      if (info.successFlag === 1) {
-        normalizedStatus = "succeeded";
-        const resultUrls = JSON.parse(info.resultUrls || "[]");
-        output = resultUrls[0];
-      } else if (info.successFlag === 2 || info.successFlag === 3) {
+        if (info.successFlag === 1) {
+          normalizedStatus = "succeeded";
+          let resultUrls = [];
+          try {
+            if (typeof info.resultUrls === 'string') {
+              resultUrls = JSON.parse(info.resultUrls || "[]");
+            } else if (Array.isArray(info.resultUrls)) {
+              resultUrls = info.resultUrls;
+            }
+          } catch (e) {
+            console.error("Failed to parse resultUrls:", e);
+          }
+          output = resultUrls[0];
+        } else if (info.successFlag === 2 || info.successFlag === 3) {
         normalizedStatus = "failed";
         error = info.errorMessage || "Generation failed on Kie AI";
       }

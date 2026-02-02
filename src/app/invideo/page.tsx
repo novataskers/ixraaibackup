@@ -35,14 +35,14 @@ import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
 
 const features = [
-  {
-    id: "text-video",
-    name: "AI Video Generation",
-    icon: Video,
-    description:
-      "Create cinematic videos using the high-performance Wan-2.1 engine.",
-    color: "text-purple-400",
-  },
+    {
+      id: "text-video",
+      name: "AI Video Generation",
+      icon: Video,
+      description:
+        "Create cinematic videos using the high-performance KIE AI engine.",
+      color: "text-purple-400",
+    },
   {
     id: "text-image",
     name: "AI Image Generation",
@@ -519,11 +519,11 @@ export default function InvideoPage() {
                       <h2 className="text-2xl font-bold text-white">
                         AI Video Generation
                       </h2>
-                      <div className="flex gap-2">
-                        <Badge className="bg-purple-600/20 text-purple-400 border-purple-500/30">
-                          Free Community Engine (Gradio)
-                        </Badge>
-                      </div>
+                        <div className="flex gap-2">
+                          <Badge className="bg-purple-600/20 text-purple-400 border-purple-500/30">
+                            KIE AI Engine
+                          </Badge>
+                        </div>
                     </div>
 
                     <div className="flex-1 flex flex-col gap-6">

@@ -53,15 +53,35 @@ export async function GET(
         throw new Error("Task info not found");
       }
 
+      console.log(`KIE AI raw status for ${taskId}:`, JSON.stringify(info));
+
       let normalizedStatus = "processing";
       let output = null;
       let error = null;
+      let progress = info.progress || 0;
 
-      if (info.successFlag === 1) {
+      // Sora 2 and modern KIE models use 'state'
+      if (info.state === "success") {
         normalizedStatus = "succeeded";
         let resultUrls = [];
         try {
-          // Check both direct resultUrls and nested response.resultUrls
+          const resultData = typeof info.resultJson === 'string' 
+            ? JSON.parse(info.resultJson) 
+            : info.resultJson;
+          resultUrls = resultData?.resultUrls || [];
+        } catch (e) {
+          console.error("Failed to parse resultJson:", e);
+        }
+        output = resultUrls[0];
+      } else if (info.state === "fail") {
+        normalizedStatus = "failed";
+        error = info.failMsg || "Generation failed on Kie AI";
+      } 
+      // Fallback to successFlag for older/image models
+      else if (info.successFlag === 1) {
+        normalizedStatus = "succeeded";
+        let resultUrls = [];
+        try {
           const source = info.response || info;
           if (typeof source.resultUrls === 'string') {
             resultUrls = JSON.parse(source.resultUrls || "[]");
@@ -81,6 +101,7 @@ export async function GET(
         status: normalizedStatus,
         output,
         error,
+        progress,
         success: true,
       });
     }

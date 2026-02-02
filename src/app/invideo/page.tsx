@@ -91,6 +91,12 @@ export default function InvideoPage() {
   const [progress, setProgress] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
 
+  // Image Generation State
+  const [imagePrompt, setImagePrompt] = useState("");
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+  const [generatedImages, setGeneratedImages] = useState<string[]>([]);
+  const [imageError, setImageError] = useState<string | null>(null);
+
   // Fallback progress simulation for models that don't provide granular progress
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -312,6 +318,33 @@ export default function InvideoPage() {
     } catch (err: any) {
       setError(err.message);
       setIsGenerating(false);
+    }
+  };
+
+  const handleGenerateImage = async () => {
+    if (!imagePrompt) return;
+
+    setIsGeneratingImage(true);
+    setImageError(null);
+    setGeneratedImages([]);
+
+    try {
+      const response = await fetch("/api/invideo/generate-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: imagePrompt }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok)
+        throw new Error(data.error || "Failed to generate image");
+
+      setGeneratedImages(data.output);
+    } catch (err: any) {
+      setImageError(err.message);
+    } finally {
+      setIsGeneratingImage(false);
     }
   };
 
@@ -539,129 +572,237 @@ export default function InvideoPage() {
                 exit={{ opacity: 0, y: -10 }}
                 className="flex-1 flex flex-col"
               >
-                {activeTab === "text-video" && (
-                  <div className="space-y-6 flex-1 flex flex-col">
-                    <div className="flex items-center justify-between mb-2">
-                      <h2 className="text-2xl font-bold text-white">
-                        AI Video Generation
-                      </h2>
-                          <div className="flex gap-2">
-                            <Badge className="bg-purple-600/20 text-purple-400 border-purple-500/30">
-                              Grok Imagine (Fast)
-                            </Badge>
-                          </div>
-                    </div>
+                  {activeTab === "text-video" && (
+                    <div className="space-y-6 flex-1 flex flex-col">
+                      <div className="flex items-center justify-between mb-2">
+                        <h2 className="text-2xl font-bold text-white">
+                          AI Video Generation
+                        </h2>
+                            <div className="flex gap-2">
+                              <Badge className="bg-purple-600/20 text-purple-400 border-purple-500/30">
+                                Grok Imagine (Fast)
+                              </Badge>
+                            </div>
+                      </div>
 
-                    <div className="flex-1 flex flex-col gap-6">
-                      {videoUrl ? (
-                        <div className="space-y-4">
-                          <div className="aspect-video rounded-2xl overflow-hidden bg-black relative group">
-                            <video
-                              src={videoUrl}
-                              controls
-                              autoPlay
-                              loop
-                              className="w-full h-full object-contain"
-                            />
-                            <div className="absolute top-4 right-4 transition-opacity">
+                      <div className="flex-1 flex flex-col gap-6">
+                        {videoUrl ? (
+                          <div className="space-y-4">
+                            <div className="aspect-video rounded-2xl overflow-hidden bg-black relative group">
+                              <video
+                                src={videoUrl}
+                                controls
+                                autoPlay
+                                loop
+                                className="w-full h-full object-contain"
+                              />
+                              <div className="absolute top-4 right-4 transition-opacity">
+                                <Button
+                                  size="sm"
+                                  className="bg-purple-600 hover:bg-purple-700 text-white shadow-lg"
+                                  onClick={() =>
+                                    downloadFile(videoUrl, "generated-video.mp4")
+                                  }
+                                >
+                                  <Download className="w-4 h-4 mr-2" /> Download
+                                </Button>
+                              </div>
+                            </div>
+
+                            <div className="flex justify-between items-center">
+                              <div className="flex items-center gap-2 text-green-400">
+                                <CheckCircle2 className="w-5 h-5" />
+                                <span className="text-sm font-medium">
+                                  Generation Complete
+                                </span>
+                              </div>
                               <Button
-                                size="sm"
-                                className="bg-purple-600 hover:bg-purple-700 text-white shadow-lg"
-                                onClick={() =>
-                                  downloadFile(videoUrl, "generated-video.mp4")
-                                }
+                                variant="outline"
+                                onClick={() => {
+                                  setVideoUrl(null);
+                                  setPrompt("");
+                                }}
+                                className="border-zinc-800 text-white hover:bg-zinc-800"
                               >
-                                <Download className="w-4 h-4 mr-2" /> Download
+                                Create Another
                               </Button>
                             </div>
                           </div>
-
-                          <div className="flex justify-between items-center">
-                            <div className="flex items-center gap-2 text-green-400">
-                              <CheckCircle2 className="w-5 h-5" />
-                              <span className="text-sm font-medium">
-                                Generation Complete
-                              </span>
+                        ) : (
+                          <>
+                            <div className="space-y-3">
+                              <Label className="text-zinc-400 uppercase text-[10px] tracking-widest font-bold">
+                                Your Prompt
+                              </Label>
+                              <textarea
+                                className="w-full h-32 bg-zinc-950/50 border border-zinc-800 rounded-xl p-4 text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all resize-none"
+                                placeholder="Describe the cinematic masterpiece you want to create..."
+                                value={prompt}
+                                onChange={(e) => setPrompt(e.target.value)}
+                                disabled={isGenerating}
+                              />
                             </div>
-                            <Button
-                              variant="outline"
-                              onClick={() => {
-                                setVideoUrl(null);
-                                setPrompt("");
-                              }}
-                              className="border-zinc-800 text-white hover:bg-zinc-800"
-                            >
-                              Create Another
-                            </Button>
-                          </div>
-                        </div>
-                      ) : (
-                        <>
-                          <div className="space-y-3">
-                            <Label className="text-zinc-400 uppercase text-[10px] tracking-widest font-bold">
-                              Your Prompt
-                            </Label>
-                            <textarea
-                              className="w-full h-32 bg-zinc-950/50 border border-zinc-800 rounded-xl p-4 text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all resize-none"
-                              placeholder="Describe the cinematic masterpiece you want to create..."
-                              value={prompt}
-                              onChange={(e) => setPrompt(e.target.value)}
-                              disabled={isGenerating}
-                            />
-                          </div>
 
-                          {error && (
-                            <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 flex items-center gap-3 text-red-400">
-                              <AlertCircle className="w-5 h-5 flex-shrink-0" />
-                              <p className="text-sm">{error}</p>
-                            </div>
-                          )}
+                            {error && (
+                              <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 flex items-center gap-3 text-red-400">
+                                <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                                <p className="text-sm">{error}</p>
+                              </div>
+                            )}
 
-                              <div className="mt-auto flex flex-col gap-4">
-                                {isGenerating && (
-                                  <div className="space-y-4 mb-2">
-                                    <div className="flex items-center justify-center gap-3 text-purple-400">
-                                      <Loader2 className="w-5 h-5 animate-spin" />
-                                      <span className="text-sm font-medium animate-pulse">
-                                        {status}
-                                      </span>
-                                    </div>
-                                    
-                                    <div className="space-y-2">
-                                      <div className="flex justify-between text-[10px] text-zinc-500 font-bold uppercase tracking-wider">
-                                        <span>Progress</span>
-                                        <span>{Math.max(progress, 5)}%</span>
+                                <div className="mt-auto flex flex-col gap-4">
+                                  {isGenerating && (
+                                    <div className="space-y-4 mb-2">
+                                      <div className="flex items-center justify-center gap-3 text-purple-400">
+                                        <Loader2 className="w-5 h-5 animate-spin" />
+                                        <span className="text-sm font-medium animate-pulse">
+                                          {status}
+                                        </span>
                                       </div>
-                                      <div className="h-1.5 w-full bg-zinc-950 rounded-full overflow-hidden border border-zinc-800">
-                                        <motion.div 
-                                          className="h-full bg-purple-600 shadow-[0_0_10px_rgba(147,51,234,0.5)]"
-                                          initial={{ width: 0 }}
-                                          animate={{ width: `${Math.max(progress, 5)}%` }}
-                                          transition={{ duration: 0.5 }}
-                                        />
+                                      
+                                      <div className="space-y-2">
+                                        <div className="flex justify-between text-[10px] text-zinc-500 font-bold uppercase tracking-wider">
+                                          <span>Progress</span>
+                                          <span>{Math.max(progress, 5)}%</span>
+                                        </div>
+                                        <div className="h-1.5 w-full bg-zinc-950 rounded-full overflow-hidden border border-zinc-800">
+                                          <motion.div 
+                                            className="h-full bg-purple-600 shadow-[0_0_10px_rgba(147,51,234,0.5)]"
+                                            initial={{ width: 0 }}
+                                            animate={{ width: `${Math.max(progress, 5)}%` }}
+                                            transition={{ duration: 0.5 }}
+                                          />
+                                        </div>
                                       </div>
                                     </div>
-                                  </div>
+                                  )}
+                                <Button
+                                onClick={handleGenerateVideo}
+                                disabled={isGenerating || !prompt}
+                                className="w-full h-14 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-lg gap-2 shadow-lg shadow-purple-900/20 disabled:opacity-50"
+                              >
+                                {isGenerating ? (
+                                  <>Processing...</>
+                                ) : (
+                                  <>
+                                    <Wand2 className="w-5 h-5" /> Generate Video
+                                  </>
                                 )}
-                              <Button
-                              onClick={handleGenerateVideo}
-                              disabled={isGenerating || !prompt}
-                              className="w-full h-14 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-lg gap-2 shadow-lg shadow-purple-900/20 disabled:opacity-50"
-                            >
-                              {isGenerating ? (
-                                <>Processing...</>
-                              ) : (
-                                <>
-                                  <Wand2 className="w-5 h-5" /> Generate Video
-                                </>
-                              )}
-                            </Button>
-                          </div>
-                        </>
-                      )}
+                              </Button>
+                            </div>
+                          </>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
+
+                  {activeTab === "text-image" && (
+                    <div className="space-y-6 flex-1 flex flex-col">
+                      <div className="flex items-center justify-between mb-2">
+                        <h2 className="text-2xl font-bold text-white">
+                          AI Image Generation
+                        </h2>
+                        <Badge className="bg-blue-600/20 text-blue-400 border-blue-500/30">
+                          Powered by Freepik
+                        </Badge>
+                      </div>
+
+                      <div className="flex-1 flex flex-col gap-6">
+                        {generatedImages.length > 0 ? (
+                          <div className="space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              {generatedImages.map((img, idx) => (
+                                <div key={idx} className="aspect-square rounded-2xl overflow-hidden bg-zinc-950 border border-zinc-800 relative group">
+                                  <img
+                                    src={img}
+                                    alt={`Generated ${idx}`}
+                                    className="w-full h-full object-contain"
+                                  />
+                                  <div className="absolute top-4 right-4 transition-opacity">
+                                    <Button
+                                      size="sm"
+                                      className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg"
+                                      onClick={() =>
+                                        downloadFile(img, `generated-image-${idx}.png`)
+                                      }
+                                    >
+                                      <Download className="w-4 h-4 mr-2" /> Download
+                                    </Button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+
+                            <div className="flex justify-between items-center">
+                              <div className="flex items-center gap-2 text-green-400">
+                                <CheckCircle2 className="w-5 h-5" />
+                                <span className="text-sm font-medium">
+                                  Images Generated
+                                </span>
+                              </div>
+                              <Button
+                                variant="outline"
+                                onClick={() => {
+                                  setGeneratedImages([]);
+                                  setImagePrompt("");
+                                }}
+                                className="border-zinc-800 text-white hover:bg-zinc-800"
+                              >
+                                Create Another
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="space-y-3">
+                              <Label className="text-zinc-400 uppercase text-[10px] tracking-widest font-bold">
+                                Your Image Prompt
+                              </Label>
+                              <textarea
+                                className="w-full h-32 bg-zinc-950/50 border border-zinc-800 rounded-xl p-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all resize-none"
+                                placeholder="Describe the image you want to generate in detail..."
+                                value={imagePrompt}
+                                onChange={(e) => setImagePrompt(e.target.value)}
+                                disabled={isGeneratingImage}
+                              />
+                            </div>
+
+                            {imageError && (
+                              <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 flex items-center gap-3 text-red-400">
+                                <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                                <p className="text-sm">{imageError}</p>
+                              </div>
+                            )}
+
+                            <div className="mt-auto flex flex-col gap-4">
+                              {isGeneratingImage && (
+                                <div className="flex items-center justify-center gap-3 text-blue-400 mb-2">
+                                  <Loader2 className="w-5 h-5 animate-spin" />
+                                  <span className="text-sm font-medium animate-pulse">
+                                    Generating your image...
+                                  </span>
+                                </div>
+                              )}
+                              <Button
+                                onClick={handleGenerateImage}
+                                disabled={isGeneratingImage || !imagePrompt}
+                                className="w-full h-14 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg gap-2 shadow-lg shadow-blue-900/20 disabled:opacity-50"
+                              >
+                                {isGeneratingImage ? (
+                                  <>Processing...</>
+                                ) : (
+                                  <>
+                                    <Sparkles className="w-5 h-5" /> Generate Image
+                                  </>
+                                )}
+                              </Button>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
 
                 {activeTab === "background" && (
                   <div className="space-y-8 flex-1 flex flex-col">
@@ -1205,6 +1346,7 @@ export default function InvideoPage() {
                   )}
 
                   {activeTab !== "text-video" &&
+                    activeTab !== "text-image" &&
                     activeTab !== "background" &&
                     activeTab !== "upscale" && 
                     activeTab !== "recorder" &&

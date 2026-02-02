@@ -33,15 +33,17 @@ export async function GET(
         return NextResponse.json({ error: "KIE API key not configured" }, { status: 500 });
       }
 
-      // Using the general record-info endpoint as it works for all models including sora
-      const response = await fetch(`https://api.kie.ai/api/v1/jobs/record-info?taskId=${taskId}`, {
+      // Using the general recordInfo endpoint as it works for all models including sora
+      const response = await fetch(`https://api.kie.ai/api/v1/jobs/recordInfo?taskId=${taskId}`, {
         headers: {
           "Authorization": `Bearer ${kieApiKey}`,
         },
       });
 
       if (!response.ok) {
-        throw new Error("Failed to fetch Kie AI status");
+        const errorText = await response.text();
+        console.error(`KIE AI Status Error (${response.status}):`, errorText);
+        throw new Error(`Failed to fetch Kie AI status: ${response.status}`);
       }
 
       const data = await response.json();
@@ -55,20 +57,22 @@ export async function GET(
       let output = null;
       let error = null;
 
-        if (info.successFlag === 1) {
-          normalizedStatus = "succeeded";
-          let resultUrls = [];
-          try {
-            if (typeof info.resultUrls === 'string') {
-              resultUrls = JSON.parse(info.resultUrls || "[]");
-            } else if (Array.isArray(info.resultUrls)) {
-              resultUrls = info.resultUrls;
-            }
-          } catch (e) {
-            console.error("Failed to parse resultUrls:", e);
+      if (info.successFlag === 1) {
+        normalizedStatus = "succeeded";
+        let resultUrls = [];
+        try {
+          // Check both direct resultUrls and nested response.resultUrls
+          const source = info.response || info;
+          if (typeof source.resultUrls === 'string') {
+            resultUrls = JSON.parse(source.resultUrls || "[]");
+          } else if (Array.isArray(source.resultUrls)) {
+            resultUrls = source.resultUrls;
           }
-          output = resultUrls[0];
-        } else if (info.successFlag === 2 || info.successFlag === 3) {
+        } catch (e) {
+          console.error("Failed to parse resultUrls:", e);
+        }
+        output = resultUrls[0];
+      } else if (info.successFlag === 2 || info.successFlag === 3) {
         normalizedStatus = "failed";
         error = info.errorMessage || "Generation failed on Kie AI";
       }

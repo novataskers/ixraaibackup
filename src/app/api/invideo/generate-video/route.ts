@@ -10,9 +10,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "KIE_VIDEO_API_KEY not configured" }, { status: 500 });
     }
 
-    console.log("Starting Video Generation via KIE AI (sora-2-text-to-video)...");
-
-    // Using the lowest cost model: sora-2-text-to-video
+    console.log("Starting Video Generation via KIE AI (grok-imagine/text-to-video)...");
+    
+    // Using Grok Imagine: fastest and cheapest high-tier model
     const response = await fetch("https://api.kie.ai/api/v1/jobs/createTask", {
       method: "POST",
       headers: {
@@ -20,10 +20,12 @@ export async function POST(req: Request) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "sora-2-text-to-video",
+        model: "grok-imagine/text-to-video",
           input: {
             prompt: prompt,
-            aspect_ratio: "landscape"
+            aspect_ratio: "16:9",
+            duration: "6",
+            mode: "normal"
           }
       }),
     });

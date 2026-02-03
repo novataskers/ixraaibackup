@@ -731,22 +731,33 @@ export default function InvideoPage() {
                     </div>
                   )}
 
-                  {activeTab === "recorder" && (
-                    <div className="space-y-4 sm:space-y-6 lg:space-y-8 flex-1 flex flex-col">
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
-                        <h2 className="text-xl sm:text-2xl font-bold text-white">Screen Recorder</h2>
-                        <Badge className={cn("transition-colors text-xs self-start sm:self-auto", isRecording ? "bg-red-500/20 text-red-400 animate-pulse" : "bg-cyan-500/20 text-cyan-400")}>{isRecording ? "Recording Live" : "Ready to Record"}</Badge>
-                      </div>
-                      <div className="flex-1 flex flex-col items-center justify-center border-2 border-dashed border-zinc-800 rounded-2xl sm:rounded-3xl bg-zinc-950/30 relative p-6 sm:p-12">
-                        {isRecording && <div className="absolute top-3 left-3 sm:top-6 sm:left-6 px-3 py-1.5 sm:px-4 sm:py-2 bg-red-500/10 border border-red-500/30 rounded-full text-xs sm:text-sm font-bold text-red-400">{formatDuration(recordingDuration)}</div>}
-                        <div className="text-center relative z-10">
-                          <div className={cn("w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6 lg:mb-8 shadow-2xl transition-all", isRecording ? "bg-red-600 scale-110" : "bg-zinc-900 border border-zinc-800")}>{isRecording ? <div className="w-5 h-5 sm:w-6 sm:h-6 lg:w-8 lg:h-8 bg-white rounded-sm" /> : <Monitor className="w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10 text-cyan-400" />}</div>
-                          <h3 className="text-lg sm:text-xl lg:text-2xl font-bold text-white mb-2 sm:mb-3">{isRecording ? "Capturing Screen..." : "Share Your Screen"}</h3>
-                          <Button onClick={isRecording ? stopRecording : startRecording} variant={isRecording ? "destructive" : "default"} className={cn("h-12 sm:h-14 lg:h-16 px-6 sm:px-8 lg:px-10 rounded-xl sm:rounded-2xl font-bold text-sm sm:text-base lg:text-lg gap-2 sm:gap-3 shadow-xl", isRecording ? "bg-red-600" : "bg-cyan-600 hover:bg-cyan-700")}>{isRecording ? <X className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6" /> : <Play className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 fill-current" />}{isRecording ? "Stop Recording" : "Start Recording"}</Button>
+                    {activeTab === "recorder" && (
+                      <div className="space-y-4 sm:space-y-6 lg:space-y-8 flex-1 flex flex-col">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
+                          <h2 className="text-xl sm:text-2xl font-bold text-white">Screen Recorder</h2>
+                          <Badge className={cn("transition-colors text-xs self-start sm:self-auto", isRecording ? "bg-red-500/20 text-red-400 animate-pulse" : "bg-cyan-500/20 text-cyan-400")}>{isRecording ? "Recording Live" : "Ready to Record"}</Badge>
+                        </div>
+                        <div className="flex-1 flex flex-col items-center justify-center border-2 border-dashed border-zinc-800 rounded-2xl sm:rounded-3xl bg-zinc-950/30 relative p-6 sm:p-12">
+                          {isRecording && <div className="absolute top-3 left-3 sm:top-6 sm:left-6 px-3 py-1.5 sm:px-4 sm:py-2 bg-red-500/10 border border-red-500/30 rounded-full text-xs sm:text-sm font-bold text-red-400">{formatDuration(recordingDuration)}</div>}
+                          
+                          {/* Mobile Notice */}
+                          <div className="md:hidden text-center">
+                            <div className="w-16 h-16 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center mx-auto mb-4">
+                              <Monitor className="w-8 h-8 text-zinc-600" />
+                            </div>
+                            <h3 className="text-lg font-bold text-white mb-2">Desktop Only Feature</h3>
+                            <p className="text-zinc-500 text-sm max-w-xs mx-auto">Screen recording requires a desktop browser. Please open this page on your computer to use this feature.</p>
+                          </div>
+                          
+                          {/* Desktop UI */}
+                          <div className="hidden md:block text-center relative z-10">
+                            <div className={cn("w-20 h-20 lg:w-24 lg:h-24 rounded-full flex items-center justify-center mx-auto mb-6 lg:mb-8 shadow-2xl transition-all", isRecording ? "bg-red-600 scale-110" : "bg-zinc-900 border border-zinc-800")}>{isRecording ? <div className="w-6 h-6 lg:w-8 lg:h-8 bg-white rounded-sm" /> : <Monitor className="w-8 h-8 lg:w-10 lg:h-10 text-cyan-400" />}</div>
+                            <h3 className="text-xl lg:text-2xl font-bold text-white mb-3">{isRecording ? "Capturing Screen..." : "Share Your Screen"}</h3>
+                            <Button onClick={isRecording ? stopRecording : startRecording} variant={isRecording ? "destructive" : "default"} className={cn("h-14 lg:h-16 px-8 lg:px-10 rounded-2xl font-bold text-base lg:text-lg gap-3 shadow-xl", isRecording ? "bg-red-600" : "bg-cyan-600 hover:bg-cyan-700")}>{isRecording ? <X className="w-5 h-5 lg:w-6 lg:h-6" /> : <Play className="w-5 h-5 lg:w-6 lg:h-6 fill-current" />}{isRecording ? "Stop Recording" : "Start Recording"}</Button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  )}
+                    )}
 
                   {activeTab === "avatars" && (
                     <div className="space-y-4 sm:space-y-6 lg:space-y-8 flex-1 flex flex-col">

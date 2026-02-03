@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { HfInference } from "@huggingface/inference";
 
 export async function POST(req: Request) {
   try {
@@ -9,48 +8,43 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Image is required" }, { status: 400 });
     }
 
-    const hfToken = process.env.HF_TOKEN;
-    if (!hfToken) {
-      return NextResponse.json({ error: "Hugging Face token not configured" }, { status: 500 });
+    const apiKey = process.env.REMOVE_BG_API_KEY;
+    if (!apiKey) {
+      return NextResponse.json({ error: "Remove.bg API key not configured" }, { status: 500 });
     }
 
-    const hf = new HfInference(hfToken);
-
-    // Extract base64 data and strip prefix if present
     const base64Data = image.includes("base64,") ? image.split("base64,")[1] : image;
-    const buffer = Buffer.from(base64Data, "base64");
 
-    console.log("Starting Hugging Face background removal (briaai/RMBG-1.4)");
+    console.log("Starting Remove.bg background removal");
 
-    // Using imageSegmentation which is the task for RMBG
-    const result = await hf.imageSegmentation({
-      model: "briaai/RMBG-1.4",
-      data: buffer,
+    const formData = new FormData();
+    formData.append("image_file_b64", base64Data);
+    formData.append("size", "auto");
+
+    const response = await fetch("https://api.remove.bg/v1.0/removebg", {
+      method: "POST",
+      headers: {
+        "X-Api-Key": apiKey,
+      },
+      body: formData,
     });
 
-    // RMBG returns a mask as the first element
-    if (!result || result.length === 0 || !result[0].mask) {
-      throw new Error("Failed to get background removal mask from Hugging Face");
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Remove.bg Error:", errorText);
+      throw new Error(`Remove.bg API error: ${response.status}`);
     }
 
-    // result[0].mask is a base64 string (without prefix)
-    const maskBase64 = result[0].mask;
-    
-    // In this specific implementation, the Hugging Face RMBG-1.4 model returns the result directly as a transparent PNG mask if using certain providers or configurations.
-    // However, usually it's just the mask. 
-    // To keep it simple and free, we return the mask for now, OR we can try to find a provider that does the composite.
-    // Actually, RMBG-1.4 on HF Inference API often returns the foreground directly if configured correctly.
-    
+    const resultBuffer = await response.arrayBuffer();
+    const resultBase64 = Buffer.from(resultBuffer).toString("base64");
+
     return NextResponse.json({ 
-      output: `data:image/png;base64,${maskBase64}`, 
-      success: true,
-      note: "Generated via free Hugging Face model"
+      output: `data:image/png;base64,${resultBase64}`, 
+      success: true
     });
 
   } catch (error: any) {
-    console.error("Hugging Face Background Removal Error:", error);
-    
-    // If HF fails, we could fallback to remove.bg if the key exists, but user said no money.
+    console.error("Background Removal Error:", error);
     return NextResponse.json({ 
       error: error.message || "Failed to remove background",
       success: false

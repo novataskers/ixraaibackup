@@ -41,46 +41,46 @@ const item = {
 export default function Home() {
   return (
     <div className="relative min-h-screen">
-      {/* Background Glows */}
-      <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-purple-600/10 blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-blue-600/10 blur-[120px] pointer-events-none" />
+        {/* Background Glows */}
+        <div className="absolute top-0 left-1/4 w-[300px] h-[300px] md:w-[500px] md:h-[500px] bg-purple-600/10 blur-[120px] pointer-events-none" />
+        <div className="absolute bottom-0 right-1/4 w-[300px] h-[300px] md:w-[500px] md:h-[500px] bg-blue-600/10 blur-[120px] pointer-events-none" />
 
-      <div className="max-w-7xl mx-auto px-6 py-12 lg:px-8">
-        <header className="mb-16">
+        <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 sm:py-12 lg:px-8 overflow-x-hidden">
+          <header className="mb-10 md:mb-16">
+            <motion.div 
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex items-center gap-2 mb-4"
+            >
+              <Badge variant="outline" className="px-3 py-1 border-purple-500/30 bg-purple-500/10 text-purple-400">
+                <Sparkles className="w-3 h-3 mr-1" /> All-in-One AI Platform
+              </Badge>
+            </motion.div>
+            <motion.h1 
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-bold tracking-tight text-white mb-4 md:mb-6"
+            >
+              Your Complete <br />
+              <span className="gradient-text italic">AI Creative Engine</span>
+            </motion.h1>
+            <motion.p 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.2 }}
+              className="text-base md:text-lg text-zinc-400 max-w-2xl leading-relaxed"
+            >
+              Unleash the power of state-of-the-art models for video, audio, and content automation. 
+              Everything you need to create, edit, and publish, all in one seamless workspace.
+            </motion.p>
+          </header>
+
           <motion.div 
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex items-center gap-2 mb-4"
+            variants={container}
+            initial="hidden"
+            animate="show"
+            className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 md:gap-8 mb-16 md:mb-24"
           >
-            <Badge variant="outline" className="px-3 py-1 border-purple-500/30 bg-purple-500/10 text-purple-400">
-              <Sparkles className="w-3 h-3 mr-1" /> All-in-One AI Platform
-            </Badge>
-          </motion.div>
-          <motion.h1 
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="text-5xl lg:text-7xl font-bold tracking-tight text-white mb-6"
-          >
-            Your Complete <br />
-            <span className="gradient-text italic">AI Creative Engine</span>
-          </motion.h1>
-          <motion.p 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.2 }}
-            className="text-lg text-zinc-400 max-w-2xl leading-relaxed"
-          >
-            Unleash the power of state-of-the-art models for video, audio, and content automation. 
-            Everything you need to create, edit, and publish, all in one seamless workspace.
-          </motion.p>
-        </header>
-
-        <motion.div 
-          variants={container}
-          initial="hidden"
-          animate="show"
-          className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-24"
-        >
           {/* Invideo Section */}
           <motion.div variants={item}>
             <Link href="/invideo">

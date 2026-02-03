@@ -23,7 +23,7 @@ export default function RootLayout({
           <body className={inter.className} style={{ overflow: "hidden" }} suppressHydrationWarning>
             <div className="flex h-screen overflow-hidden">
           <Sidebar />
-          <main className="flex-1 overflow-y-auto relative bg-[#09090b]">
+          <main className="flex-1 overflow-y-auto relative bg-[#09090b] pt-14 md:pt-0">
             {children}
           </main>
         </div>

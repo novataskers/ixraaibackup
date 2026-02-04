@@ -4,6 +4,16 @@ export async function GET(req: Request) {
   return NextResponse.json([]);
 }
 
+function isCreditsExhaustedError(responseText: string): boolean {
+  const lowerText = responseText.toLowerCase();
+  return lowerText.includes('insufficient') || 
+         lowerText.includes('credits') || 
+         lowerText.includes('quota') ||
+         lowerText.includes('balance') ||
+         lowerText.includes('limit exceeded') ||
+         lowerText.includes('no access');
+}
+
 async function generateWithModel(model: string, prompt: string, genre: string, apiKey: string) {
   const hasLyricsBrackets = prompt.includes('[') || prompt.includes(']');
   
@@ -38,37 +48,65 @@ async function generateWithModel(model: string, prompt: string, genre: string, a
 
   if (!response.ok) {
     console.error(`KIE AI ${model} Error:`, responseText);
-    return { error: true, message: responseText };
+    const creditsExhausted = response.status === 401 || response.status === 403 || isCreditsExhaustedError(responseText);
+    return { error: true, message: responseText, creditsExhausted };
   }
 
   const result = JSON.parse(responseText);
   
   if (result.code && result.code !== 200) {
     console.error(`KIE AI ${model} API Error:`, result.msg);
-    return { error: true, message: result.msg };
+    const creditsExhausted = isCreditsExhaustedError(result.msg || '');
+    return { error: true, message: result.msg, creditsExhausted };
   }
 
   const taskId = result.data?.taskId || result.taskId || result.id;
   return { taskId, model };
 }
 
+async function tryGenerateWithKeys(model: string, prompt: string, genre: string, apiKeys: string[]) {
+  for (let i = 0; i < apiKeys.length; i++) {
+    const apiKey = apiKeys[i];
+    if (!apiKey) continue;
+    
+    console.log(`Trying KIE AI Key ${i + 1} for ${model}...`);
+    const result = await generateWithModel(model, prompt, genre, apiKey);
+    
+    if (!result.error) {
+      return result;
+    }
+    
+    if (result.creditsExhausted && i < apiKeys.length - 1) {
+      console.log(`Key ${i + 1} credits exhausted for ${model}, switching to next key...`);
+      continue;
+    }
+    
+    return result;
+  }
+  
+  return { error: true, message: 'All API keys exhausted or failed' };
+}
+
 export async function POST(req: Request) {
   try {
     const { prompt, genre, energy } = await req.json();
-    const apiKey = process.env.KIE_AI_API_KEY;
+    const apiKey1 = process.env.KIE_AI_API_KEY;
+    const apiKey2 = process.env.KIE_AI_API_KEY_2;
 
-    if (!apiKey) {
+    const apiKeys = [apiKey1, apiKey2].filter(Boolean) as string[];
+
+    if (apiKeys.length === 0) {
       return NextResponse.json({ 
         error: 'No KIE AI API Key', 
         message: 'Please add KIE_AI_API_KEY to your environment variables.' 
       }, { status: 500 });
     }
 
-    console.log('Starting KIE AI generation for V4_5 and V4');
+    console.log(`Starting KIE AI generation with ${apiKeys.length} available key(s)`);
     
     const [v4Result, v45Result] = await Promise.all([
-      generateWithModel("V4", prompt, genre, apiKey),
-      generateWithModel("V4_5", prompt, genre, apiKey),
+      tryGenerateWithKeys("V4", prompt, genre, apiKeys),
+      tryGenerateWithKeys("V4_5", prompt, genre, apiKeys),
     ]);
 
     if (v4Result.error && v45Result.error) {

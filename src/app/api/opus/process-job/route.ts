@@ -43,18 +43,26 @@ export async function POST(request: NextRequest) {
       // We skip local transcription and audio download to make it much faster.
       await updateJob(jobId, { status: "processing", current_step: "finding_clips", progress: 20 });
       
-        const vizardApiKey = process.env.VIZARDAI_API_KEY;
-        if (!vizardApiKey) {
-          throw new Error("VIZARDAI_API_KEY is missing from environment variables");
-        }
-        console.log(`[opus] Creating Vizard project using key: ${vizardApiKey.substring(0, 4)}...${vizardApiKey.substring(vizardApiKey.length - 4)}`);
+        const vizardKeys = [
+          process.env.VIZARDAI_API_KEY,
+          process.env.VIZARDAI_API_KEY_2,
+          process.env.VIZARDAI_API_KEY_3,
+          process.env.VIZARDAI_API_KEY_4,
+        ].filter(Boolean) as string[];
 
+        if (vizardKeys.length === 0) {
+          throw new Error("No Vizard API keys configured");
+        }
+
+        let vizardData: any = null;
+        let lastError = "";
+        for (const key of vizardKeys) {
           const vizardResponse = await fetch("https://elb-api.vizard.ai/hvizard-server-front/open-api/v1/project/create", {
-          method: "POST",
-          headers: {
-            "VIZARDAI_API_KEY": vizardApiKey,
-            "Content-Type": "application/json",
-          },
+            method: "POST",
+            headers: {
+              "VIZARDAI_API_KEY": key,
+              "Content-Type": "application/json",
+            },
             body: JSON.stringify({
               videoUrl: job.youtube_url,
               videoType: 2,
@@ -62,18 +70,18 @@ export async function POST(request: NextRequest) {
               projectName: job.video_title || `Project ${jobId}`,
               subtitleSwitch: job.add_captions ? 1 : 0,
             }),
-        });
+          });
+          const data = await vizardResponse.json();
+          if (vizardResponse.ok && data.code === 2000 && data.projectId) {
+            vizardData = data;
+            break;
+          }
+          lastError = data.errMsg || data.message || `HTTP ${vizardResponse.status}`;
+        }
 
-      const vizardData = await vizardResponse.json();
-      console.log("[opus] Vizard API response:", JSON.stringify(vizardData, null, 2));
-
-      if (!vizardResponse.ok) {
-        throw new Error(`Vizard.ai API error: ${vizardResponse.status} ${vizardData.message || vizardData.errMsg || ""}`);
-      }
-      
-      if (vizardData.code !== 2000 || !vizardData.projectId) {
-        throw new Error(`Vizard.ai failed: ${vizardData.errMsg || vizardData.message || "No project ID returned"}`);
-      }
+        if (!vizardData) {
+          throw new Error(`Vizard.ai failed: ${lastError}`);
+        }
 
       const vizardProjectId = vizardData.projectId;
       console.log(`[opus] Vizard project created: ${vizardProjectId}`);

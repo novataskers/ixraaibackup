@@ -131,7 +131,7 @@ export function AuthDialog({ mode: initialMode, trigger }: AuthDialogProps) {
           </div>
           <Button 
             type="submit" 
-            className="w-full bg-pink-600 hover:bg-pink-700 font-bold"
+            className="w-full bg-amber-600 hover:bg-amber-700 font-bold"
             disabled={loading}
           >
             {loading ? (
@@ -150,7 +150,7 @@ export function AuthDialog({ mode: initialMode, trigger }: AuthDialogProps) {
                 <button
                   type="button"
                   onClick={() => setMode("register")}
-                  className="text-pink-400 hover:underline"
+                  className="text-amber-400 hover:underline"
                 >
                   Sign Up
                 </button>
@@ -161,7 +161,7 @@ export function AuthDialog({ mode: initialMode, trigger }: AuthDialogProps) {
                 <button
                   type="button"
                   onClick={() => setMode("login")}
-                  className="text-pink-400 hover:underline"
+                  className="text-amber-400 hover:underline"
                 >
                   Sign In
                 </button>

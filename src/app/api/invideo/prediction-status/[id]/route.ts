@@ -76,7 +76,7 @@ export async function GET(
 
     if (id.startsWith("kie_")) {
       const taskId = id.replace("kie_", "");
-      const kieApiKey = process.env.KIE_VIDEO_API_KEY || process.env.KIE_AI_API_KEY;
+      const kieApiKey = process.env.KIE_AI_API_KEY;
 
       if (!kieApiKey) {
         return NextResponse.json({ error: "KIE API key not configured" }, { status: 500 });
@@ -157,43 +157,87 @@ export async function GET(
       });
     }
 
-    if (id.startsWith("replicate_")) {
-      const predictionId = id.replace("replicate_", "");
-      const replicateToken = process.env.REPLICATE_API_TOKEN;
+    if (id.startsWith("seedance_")) {
+        const taskId = id.replace("seedance_", "");
+        const freepikApiKey = process.env.FREEPIK_SEEDANCE_API_KEY;
 
-      if (!replicateToken) {
-        return NextResponse.json({ error: "REPLICATE_API_TOKEN not configured" }, { status: 500 });
+        if (!freepikApiKey) {
+          return NextResponse.json({ error: "FREEPIK_SEEDANCE_API_KEY not configured" }, { status: 500 });
+        }
+
+        const response = await fetch(`https://api.freepik.com/v1/ai/video/seedance-1-5-pro-480p/${taskId}`, {
+          headers: {
+            "x-freepik-api-key": freepikApiKey,
+          },
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`Seedance Status Error (${response.status}):`, errorText);
+          throw new Error(`Failed to fetch Seedance status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const taskData = data.data;
+        console.log(`Seedance status for ${taskId}:`, JSON.stringify(taskData));
+
+        let normalizedStatus = "processing";
+        let output = null;
+        let error = null;
+
+        if (taskData.status === "COMPLETED") {
+          normalizedStatus = "succeeded";
+          output = taskData.generated?.[0];
+        } else if (taskData.status === "FAILED") {
+          normalizedStatus = "failed";
+          error = "Generation failed on Seedance";
+        }
+
+        return NextResponse.json({
+          status: normalizedStatus,
+          output,
+          error,
+          success: true,
+        });
       }
 
-      const replicate = new Replicate({
-        auth: replicateToken,
-      });
+      if (id.startsWith("replicate_")) {
+        const predictionId = id.replace("replicate_", "");
+        const replicateToken = process.env.REPLICATE_API_TOKEN;
 
-      const prediction = await replicate.predictions.get(predictionId);
-      console.log(`Replicate status check for ${predictionId}:`, prediction.status);
+        if (!replicateToken) {
+          return NextResponse.json({ error: "REPLICATE_API_TOKEN not configured" }, { status: 500 });
+        }
 
-      let normalizedStatus = "processing";
-      let output = null;
-      let error = null;
+        const replicate = new Replicate({
+          auth: replicateToken,
+        });
 
-      if (prediction.status === "succeeded") {
-        normalizedStatus = "succeeded";
-        output = prediction.output;
-      } else if (prediction.status === "failed") {
-        normalizedStatus = "failed";
-        error = prediction.error || "Generation failed on Replicate";
-      } else if (prediction.status === "canceled") {
-        normalizedStatus = "failed";
-        error = "Generation was canceled";
+        const prediction = await replicate.predictions.get(predictionId);
+        console.log(`Replicate status check for ${predictionId}:`, prediction.status);
+
+        let normalizedStatus = "processing";
+        let output = null;
+        let error = null;
+
+        if (prediction.status === "succeeded") {
+          normalizedStatus = "succeeded";
+          output = prediction.output;
+        } else if (prediction.status === "failed") {
+          normalizedStatus = "failed";
+          error = prediction.error || "Generation failed on Replicate";
+        } else if (prediction.status === "canceled") {
+          normalizedStatus = "failed";
+          error = "Generation was canceled";
+        }
+
+        return NextResponse.json({
+          status: normalizedStatus,
+          output,
+          error,
+          success: true,
+        });
       }
-
-      return NextResponse.json({
-        status: normalizedStatus,
-        output,
-        error,
-        success: true,
-      });
-    }
 
     if (!id.startsWith("1min_")) {
       return NextResponse.json({ error: "Invalid prediction ID" }, { status: 400 });

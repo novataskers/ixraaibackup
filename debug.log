@@ -94,3 +94,105 @@
 2026-02-02T21:40:42.576Z [network][POST 500] /api/invideo/avatar
   request: {"image":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAARQAAAEUCAYAAADqcMl5AAAgAElEQVR4nGxUy0oDUQw9yXQqzF4QKrjxMwS3gn/gT7rS3ymC6F50195InpNWZ3rfuScnJ5nS092tAAIBQPoS7IkhHjmbS83tVQTrBoac27R7dZY+pPruVWxkazoXyf1TZso3fgFPuWu8bGVQBBpuM2RAhuA4lKsY73E4YJ4XXF7d4P7xAde7HX6+vjHGQAoi4ZqsMUAMolUvkTUCa8zYbjf4fN/j5fkV+7cPLMsF5plBGM6DgHkibCbCxIzJYcHMYOWsPmLOxLZP7NGp3/Tptig+aW80Qw9O/kHWbHtuck2hIVHs/60Gd9xvS+hAFbtpBAROqyL1LV5vBqM6aA4iF72ZQFWbq9tCDK7s0bl4ZsToFSMnBMpxq+IOTl6RldgULu50KQhVwVLxZ+3HYfE8vZcmftJ7DTuBcyfO60vN+wl0Fl8BxULlaSmzUHpeg0ehZbj/fMVZdKtmPtj/gAC/AAAA//9slQEOhSAMQzfQf/8DK/vBrawTTVQSUKDtHsd59mW6riDlmqoWBg9XcWHsWzNMi4BITPgEalMglf6Ei736jPvzN0bMAuTue8h1z7nH2s80XwEZMWnNpEWRj6lB6x4QrYKvB4EEAzSp5t6ZRFH/ZJJCm1EoAxbq8DiOuLtDo3d1kGj4EWM9Z04S13Q8c42RvrQAzdBL9M6oWoB0gwOrrbUd6Kp71dQXZuwuzm8I7wErjUeWQQUGzNsyKNhbHCAGD+KeFTPfpqkRAsHk3YpB6/pJBABViygIOwEHSS/FWvuKcBSo5AoJzGITvQoL1+HM/wSAWcxvr3k7uYgXnPhacEnKPG2LmgT8xeQPAAD//2RX25bDIAgciEn//3e7Wd0DDojuS9OeGoMwt7T7bstZRPYz54DXQUWR4Lb17qp1uOFw/0QFhQhFYDj+ziJDGXsUThB0J8VSaU8tS9LLLCSvINlcVN6O7/cH7/tS1IR+InS0gf77QnFB9Zr1H1iyZ7r7hu+fLh8AHRGwBPf14DKBCnCq9UxcPEzMP0/Dcze0dvk6TyFScTWOPkYi7JujCkVKtRKX1BoyxbKH86MIPb/XfjM15KhYRR8n4MYBcOQcLIVZTSYCmbaKSA0TQ0uJHb6vJ7YRYWmey+8lzlxc7XCIcyr35G/uP3uiO6+YpBHgD1HOqe3F51SVWUeCB1ypo8xnT6nTTLiO4SAMyIQvDTmekh+VMev/uues2TrLhOp8Yc6vacZ7NrucnN6wfL4bhLBGslu4M8xnp/gWMMVkmXakSwD4AwAA//9kV1mywyAMM0t7//vmAR0sy0veBzMZ2sRgS7I8adL4h3/i2uJ3DbuPODLakXWs21t3RH6yC4muGmnKQaJXGcxqfEuglDeK701dM54JrqkjxZDv9+gIckXlef7kebaSkgXXcW0t3KUbUM8pMaJkrQCp2ttkbPodaYYMzB767TGGfK6YzA4xuWtO6eOubgR6NxjcersYXDdlIO3i4xCICxIWF3Uix6jj2we+8vkGGpCT4scerW6eELzGjeOPBBkda0kg95a1lq6tIrOAMyoMY28SrrlzxZE6h7pbRidhiZFNSTYcZic1d6xrt24SiiRktxJIdhF6flx3XAVAeh0/R1cMMA/VCQX6S+r1CLDTPBerCPICKBoT5lu30GZM6L0r2ps+zmJsz44Rx6IY4VlTkOgYjQcBmVO95/1Ga/IDAAD//2SYyQ7DMAhEweTQ///cLHblsMzQnlJFlcXizDw4thu3D5hdlxGx4U4eFMEtfZ1xRiBhEFWwqlk0KdWxxCycdP82DQdWFGXQKMFgUpS38oNndMzeIoDDDrHPFpdHruuS87zlvp7at8i8QSGqbf5H07PoHSe10Lr5nYxNHmruomZyDPN9iTkJbSrReDeKMHCZc3ySPHm5kxgtbVJIsEcBB4Bm4Yhalznl... [truncated]
   response: {"error":"Failed to generate AI Avatar using Freepik","details":"Validation error"}
+2026-02-11T14:04:13.547Z [console][error] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+%s%s https://react.dev/link/hydration-mismatch 
+
+  ...
+    <HotReload assetPrefix="">
+      <ReactDevOverlay state={{nextId:1, ...}} dispatcher={{...}}>
+        <DevRootHTTPAccessFallbackBoundary>
+          <HTTPAccessFallbackBoundary notFound={<NotAllowedRootHTTPFallbackError>}>
+            <HTTPAccessFallbackErrorBoundary pathname="/" notFound={<NotAllowedRootHTTPFallbackError>} ...>
+              <RedirectBoundary>
+                <RedirectErrorBoundary router={{...}}>
+                  <Head>
+                  <link>
+                  <RootLayout>
+                    <html lang="en" className="dark" suppressHydrationWarning={true}>
+                      <head>
+                      <body className="__classNam..." suppressHydrationWarning={true}>
+                        <div
+                          className="flex min-h-screen md:h-screen md:overflow-hidden"
+-                         data-orchid-ref="ref-w1q5s53eqn"
+                        >
+                          <Sidebar>
+                            <div
+                              className="md:hidden fixed top-0 left-0 right-0 z-50 flex items-center justify-between p..."
+-                             data-orchid-ref="ref-ossx85skok"
+                            >
+                              <div
+                                className="flex items-center gap-3"
+-                      ...
+2026-02-14T13:08:17.573Z [console][error] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+%s%s https://react.dev/link/hydration-mismatch 
+
+  ...
+    <HotReload assetPrefix="">
+      <ReactDevOverlay state={{nextId:1, ...}} dispatcher={{...}}>
+        <DevRootHTTPAccessFallbackBoundary>
+          <HTTPAccessFallbackBoundary notFound={<NotAllowedRootHTTPFallbackError>}>
+            <HTTPAccessFallbackErrorBoundary pathname="/invideo" notFound={<NotAllowedRootHTTPFallbackError>} ...>
+              <RedirectBoundary>
+                <RedirectErrorBoundary router={{...}}>
+                  <Head>
+                  <link>
+                  <RootLayout>
+                    <html lang="en" className="dark" suppressHydrationWarning={true}>
+                      <head>
+                      <body className="__classNam..." suppressHydrationWarning={true}>
+                        <div
+                          className="flex min-h-screen md:h-screen md:overflow-hidden"
+-                         data-orchid-ref="ref-sy6dd4i1yr"
+                        >
+                          <Sidebar>
+                            <div
+                              className="md:hidden fixed top-0 left-0 right-0 z-50 flex items-center justify-between p..."
+-                             data-orchid-ref="ref-wp9p5gyzvg"
+                            >
+                              <div
+                                className="flex items-center gap-3"
+-               ...
+2026-02-21T10:35:38.985Z [console][warn] [Fast Refresh] rebuilding
+2026-02-21T10:35:41.097Z [console][warn] [Fast Refresh] done in 2111ms
+2026-02-21T10:35:41.512Z [console][log] __ORCHIDS_NAVIGATE__ http://localhost:3000/invideo
+2026-02-21T10:33:28.149Z [console][debug] __ORCHIDS_NAVIGATE__ http://localhost:3000/invideo
+2026-02-21T10:35:38.984Z [console][log] [Fast Refresh] rebuilding
+2026-02-21T10:35:41.095Z [console][log] [Fast Refresh] done in 2111ms
+2026-02-21T10:35:41.512Z [console][debug] __ORCHIDS_NAVIGATE__ http://localhost:3000/invideo
+2026-02-21T10:35:41.031Z [network][GET 200] /_next/static/webpack/7cf6b1d453faa289.webpack.hot-update.json
+  response: {"c":["app/layout","webpack"],"r":[],"m":[]}
+2026-02-21T10:35:41.452Z [network][GET 200] 
+  response: 1:"$Sreact.fragment"
+3:I["(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js",["app-pages-internals","static/chunks/app-pages-internals.js"],""]
+4:I["(app-pages-browser)/./node_modules/next/dist/client/components/render-from-template-context.js",["app-pages-internals","static/chunks/app-pages-internals.js"],""]
+6:I["(app-pages-browser)/./src/components/Sidebar.tsx",["app/layout","static/chunks/app/layout.js"],"Sidebar"]
+a:I["(app-pages-browser)/./node_modules/next/dist/client/components/client-page.js",["app-pages-internals","static/chunks/app-pages-internals.js"],"ClientPageRoot"]
+b:I["(app-pages-browser)/./src/app/invideo/page.tsx",["app/invideo/page","static/chunks/app/invideo/page.js"],"default"]
+c:I["(app-pages-browser)/./node_modules/next/dist/lib/metadata/metadata-boundary.js",["app-pages-internals","static/chunks/app-pages-internals.js"],"OutletBoundary"]
+10:I["(app-pages-browser)/./node_modules/next/dist/client/components/error-boundary.js",["app-pages-internals","static/chunks/app-pages-internals.js"],""]
+11:I["(app-pages-browser)/./node_modules/next/dist/client/components/client-segment.js",["app-pages-internals","static/chunks/app-pages-internals.js"],"ClientSegmentRoot"]
+12:I["(app-pages-browser)/./node_modules/next/dist/client/components/http-access-fallback/error-boundary.js",["app-pages-internals","static/chunks/app-pages-internals.js"],"HTTPAccessFallbackBoundary"]
+13:I["(app-pages-browser)/./node_modules/next/dist/lib/metadata/metadata-boundary.js",["app-pages-internals","static/chunks/app-pages-internals.js"],"MetadataBoundary"]
+14:I["(app-pages-browser)/./node_modules/next/dist/lib/metadata/metadata-boundary.js",["app-pages-internals","static/chunks/app-pages-internals.js"],"ViewportBoundary"]
+5:{"name":"RootLayout","env":"Server","key":null,"owner":null,"props":{"children":["$","$L3",null,{"parallelRouterKey":"children","segmentPath":["children"],"error":"$undefined","errorStyles":"$undefined","errorScripts":"$undefi... [truncated]
+2026-03-03T21:09:19.342Z [console][error] The resource http://localhost:3000/_next/static/media/e4af272ccee01ff0-s.p.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.
+2026-03-03T21:09:19.342Z [console][error] The resource http://localhost:3000/_next/static/media/797e433ab948586e-s.p.dbea232f.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.
+2026-03-03T21:09:19.343Z [console][error] The resource http://localhost:3000/_next/static/media/caa3a2e1cccd8315-s.p.853070df.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.

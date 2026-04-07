@@ -1,4 +1,11 @@
 import { NextResponse } from "next/server";
+import { v2 as cloudinary } from "cloudinary";
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 function isCreditsExhaustedError(responseText: string): boolean {
   const lowerText = responseText.toLowerCase();
@@ -10,22 +17,39 @@ function isCreditsExhaustedError(responseText: string): boolean {
          lowerText.includes('no access');
 }
 
-async function createVideoTask(prompt: string, apiKey: string): Promise<{ success: boolean; taskId?: string; creditsExhausted?: boolean; error?: string }> {
+async function uploadImageToCloudinary(base64Image: string): Promise<string> {
+  const result = await cloudinary.uploader.upload(base64Image, {
+    folder: "invideo-video-gen",
+    resource_type: "image",
+  });
+  return result.secure_url;
+}
+
+async function createVideoTask(
+  prompt: string,
+  apiKey: string,
+  imageUrl?: string
+): Promise<{ success: boolean; taskId?: string; creditsExhausted?: boolean; error?: string }> {
+  const model = imageUrl ? "grok-imagine/image-to-video" : "grok-imagine/text-to-video";
+  const input: Record<string, any> = {
+    prompt: prompt,
+    duration: "6",
+    mode: "normal",
+  };
+
+  if (imageUrl) {
+    input.image_urls = [imageUrl];
+  } else {
+    input.aspect_ratio = "16:9";
+  }
+
   const response = await fetch("https://api.kie.ai/api/v1/jobs/createTask", {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      model: "grok-imagine/text-to-video",
-      input: {
-        prompt: prompt,
-        aspect_ratio: "16:9",
-        duration: "6",
-        mode: "normal"
-      }
-    }),
+    body: JSON.stringify({ model, input }),
   });
 
   const responseText = await response.text();
@@ -52,8 +76,15 @@ async function createVideoTask(prompt: string, apiKey: string): Promise<{ succes
 
 export async function POST(req: Request) {
   try {
-    const { prompt } = await req.json();
+    const { prompt, image } = await req.json();
     if (!prompt) return NextResponse.json({ error: "Prompt is required" }, { status: 400 });
+
+    let imageUrl: string | undefined;
+    if (image) {
+      console.log("Uploading attached image to Cloudinary...");
+      imageUrl = await uploadImageToCloudinary(image);
+      console.log("Image uploaded:", imageUrl);
+    }
 
     const apiKey1 = process.env.KIE_VIDEO_API_KEY;
     const apiKey2 = process.env.KIE_VIDEO_API_KEY_2;
@@ -63,11 +94,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "KIE_VIDEO_API_KEY not configured" }, { status: 500 });
     }
 
-    console.log(`Starting Video Generation via KIE AI with ${apiKeys.length} available key(s)...`);
+    const mode = imageUrl ? "Image-to-Video" : "Text-to-Video";
+    console.log(`Starting ${mode} Generation via KIE AI with ${apiKeys.length} available key(s)...`);
     
     for (let i = 0; i < apiKeys.length; i++) {
       console.log(`Trying KIE Video Key ${i + 1}...`);
-      const result = await createVideoTask(prompt, apiKeys[i]);
+      const result = await createVideoTask(prompt, apiKeys[i], imageUrl);
       
       if (result.success) {
         return NextResponse.json({ 

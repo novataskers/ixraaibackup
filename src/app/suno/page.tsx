@@ -504,7 +504,10 @@ const item = updated.find(i => i.id === historyItemId);
   };
 
   return (
-    <div className="p-8 lg:p-12">
+    <div className="p-6 lg:p-10 relative overflow-hidden">
+      {/* Ambient glows */}
+      <div className="absolute top-0 left-1/3 w-[500px] h-[400px] rounded-full bg-amber-500/10 blur-[140px] pointer-events-none" />
+      <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] rounded-full bg-yellow-500/10 blur-[120px] pointer-events-none" />
       {currentSong.audioUrl && (
         <audio 
           key={currentSong.audioUrl}
@@ -516,20 +519,23 @@ const item = updated.find(i => i.id === historyItemId);
         />
       )}
       
-      <header className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6">
+      <header className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6 relative">
         <div>
-          <h1 className="text-4xl font-bold text-white mb-4">Suno Studio</h1>
-          <p className="text-zinc-400 max-w-xl">
+          <Badge variant="outline" className="border-amber-500/30 bg-amber-500/10 text-amber-300 text-xs mb-4 backdrop-blur-sm shadow-[0_0_12px_rgba(245,158,11,0.12)]">
+            <Radio className="w-3 h-3 mr-1.5" /> AI Music Studio
+          </Badge>
+          <h1 className="text-3xl lg:text-4xl font-bold text-white mb-3">Suno Studio</h1>
+          <p className="text-zinc-400 max-w-xl text-sm">
             Compose high-fidelity music and voices with professional AI models.
           </p>
         </div>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <div className="lg:col-span-7">
-          <Card className="bg-zinc-900/50 border-zinc-800 p-8 h-full">
+          <div className="p-8 h-full rounded-2xl" style={{background:"linear-gradient(160deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.02) 60%, rgba(0,0,0,0.1) 100%)",backdropFilter:"blur(24px) saturate(160%)",WebkitBackdropFilter:"blur(24px) saturate(160%)",border:"1px solid rgba(255,255,255,0.10)",boxShadow:"0 8px 40px rgba(0,0,0,0.4), 0 1px 0 rgba(255,255,255,0.08) inset"}}>
             <div className="space-y-8">
-              <div className="flex items-center gap-2 text-pink-500 font-bold uppercase tracking-widest text-xs mb-4">
+              <div className="flex items-center gap-2 text-amber-500 font-bold uppercase tracking-widest text-xs mb-4">
                 <FileText className="w-4 h-4" /> Text to Music
               </div>
 
@@ -545,7 +551,7 @@ const item = updated.find(i => i.id === historyItemId);
                           className={cn(
                             "cursor-pointer transition-all text-[10px] px-2 py-0 h-5",
                             selectedStyles.includes(style) 
-                              ? "bg-pink-500 text-white border-pink-500 hover:bg-pink-600" 
+                              ? "bg-amber-500 text-white border-amber-500 hover:bg-amber-600" 
                               : "text-zinc-500 border-zinc-800 hover:border-zinc-700 bg-transparent"
                           )}
                           onClick={() => {
@@ -564,7 +570,7 @@ const item = updated.find(i => i.id === historyItemId);
                   <textarea 
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
-                    className="w-full h-48 bg-zinc-950/50 border border-zinc-800 rounded-2xl p-6 text-white focus:outline-none focus:ring-2 focus:ring-pink-500/50 transition-all resize-none font-mono text-sm leading-relaxed"
+                    className="w-full h-48 rounded-2xl p-6 text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 transition-all resize-none font-mono text-sm leading-relaxed input-glass"
                     placeholder="[Verse 1]&#10;Midnight rain on a neon street...&#10;&#10;[Chorus]&#10;Lost in the rhythm of the city heart..."
                   />
                   <div className="flex justify-between">
@@ -572,7 +578,7 @@ const item = updated.find(i => i.id === historyItemId);
                       variant="ghost" 
                       onClick={handleGenerateLyrics}
                       disabled={isGeneratingLyrics}
-                      className="text-pink-400 text-xs gap-1 h-auto p-0 hover:bg-transparent disabled:opacity-50"
+                      className="text-amber-400 text-xs gap-1 h-auto p-0 hover:bg-transparent disabled:opacity-50"
                     >
                       {isGeneratingLyrics ? <Loader2 className="w-3 h-3 animate-spin" /> : <Wand2 className="w-3 h-3" />}
                       Generate AI Lyrics
@@ -585,7 +591,7 @@ const item = updated.find(i => i.id === historyItemId);
                   <Button 
                     onClick={handleGenerateMusic}
                     disabled={isLoading}
-                    className="w-full h-16 rounded-2xl bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700 text-white font-bold text-lg gap-3 disabled:opacity-50 relative overflow-hidden"
+                    className="w-full h-16 rounded-2xl bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-700 hover:to-yellow-700 text-white font-bold text-lg gap-3 disabled:opacity-50 relative overflow-hidden"
                   >
                     {isLoading ? (
                       <>
@@ -609,24 +615,24 @@ const item = updated.find(i => i.id === historyItemId);
                       <motion.div 
                         initial={{ width: 0 }}
                         animate={{ width: `${generationProgress}%` }}
-                        className="bg-gradient-to-r from-pink-500 to-purple-500 h-full"
+                        className="bg-gradient-to-r from-amber-500 to-yellow-500 h-full"
                       />
                     </div>
                   )}
                 </div>
               </div>
             </div>
-          </Card>
+          </div>
         </div>
 
         <div className="lg:col-span-5 space-y-8">
-          <Card className="bg-zinc-950 border-zinc-800 p-8 flex flex-col items-center text-center overflow-hidden relative">
-            <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-pink-500 via-purple-500 to-pink-500 animate-gradient-x" />
+            <div className="p-8 flex flex-col items-center text-center overflow-hidden relative rounded-2xl" style={{background:"linear-gradient(160deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.02) 60%, rgba(0,0,0,0.1) 100%)",backdropFilter:"blur(24px) saturate(160%)",WebkitBackdropFilter:"blur(24px) saturate(160%)",border:"1px solid rgba(255,255,255,0.10)",boxShadow:"0 8px 40px rgba(0,0,0,0.4), 0 1px 0 rgba(255,255,255,0.08) inset"}}>
+              <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-amber-500/60 to-transparent" />
             
               <motion.div 
               animate={{ rotate: isPlaying ? 360 : 0 }}
               transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-              className="w-48 h-48 rounded-full border-8 border-zinc-900 shadow-[0_0_50px_-10px_rgba(236,72,153,0.3)] bg-zinc-900 flex items-center justify-center mb-8 relative overflow-hidden"
+              className="w-48 h-48 rounded-full border-8 border-zinc-900 shadow-[0_0_50px_-10px_rgba(245,158,11,0.3)] bg-zinc-900 flex items-center justify-center mb-8 relative overflow-hidden"
             >
               {currentSong.imageUrl ? (
                 <img 
@@ -638,7 +644,7 @@ const item = updated.find(i => i.id === historyItemId);
                 <Disc className="w-32 h-32 text-zinc-800 opacity-20" />
               )}
               <div className="absolute inset-4 rounded-full border border-zinc-700/50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-                <Music className="w-12 h-12 text-pink-500" />
+                <Music className="w-12 h-12 text-amber-500" />
               </div>
             </motion.div>
 
@@ -668,7 +674,7 @@ setActiveVersion('v4');
                     className={cn(
                       "px-4 py-2 rounded-full text-xs font-bold transition-all",
                       activeVersion === 'v4'
-                        ? "bg-pink-600 text-white"
+                        ? "bg-amber-600 text-white"
                         : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
                     )}
                   >
@@ -701,7 +707,7 @@ setActiveVersion('v35');
                     className={cn(
                       "px-4 py-2 rounded-full text-xs font-bold transition-all",
                       activeVersion === 'v35'
-                        ? "bg-purple-600 text-white"
+                        ? "bg-yellow-600 text-white"
                         : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
                     )}
                   >
@@ -768,7 +774,7 @@ setActiveVersion('v35');
               <div className="mt-6 flex flex-col items-center gap-3 w-full">
                 <div className="w-full bg-zinc-800 rounded-full h-2 overflow-hidden">
                   <div 
-                    className="bg-gradient-to-r from-pink-500 to-purple-500 h-full transition-all duration-300"
+                    className="bg-gradient-to-r from-amber-500 to-yellow-500 h-full transition-all duration-300"
                     style={{ width: `${videoProgress}%` }}
                   />
                 </div>
@@ -793,11 +799,11 @@ setActiveVersion('v35');
                   <Download className="w-4 h-4" /> Download MP4 Video
                 </Button>
               </div>
-            )}
-          </Card>
+              )}
+            </div>
 
-          <Card className="bg-zinc-900/30 border-zinc-800 p-6 h-[250px] flex flex-col overflow-hidden">
-            <h4 className="text-sm font-bold text-white mb-6 uppercase tracking-widest shrink-0">Lyrics / Transcript</h4>
+            <div className="p-6 h-[250px] flex flex-col overflow-hidden rounded-2xl" style={{background:"linear-gradient(160deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%)",backdropFilter:"blur(20px) saturate(160%)",WebkitBackdropFilter:"blur(20px) saturate(160%)",border:"1px solid rgba(255,255,255,0.08)",boxShadow:"0 8px 32px rgba(0,0,0,0.35), 0 1px 0 rgba(255,255,255,0.07) inset"}}>
+              <h4 className="text-sm font-bold text-white mb-6 uppercase tracking-widest shrink-0">Lyrics / Transcript</h4>
             <div className="flex-1 min-h-0">
               <ScrollArea className="h-full text-left">
                 <div className="pr-4">
@@ -810,11 +816,11 @@ setActiveVersion('v35');
                   </pre>
                 </div>
               </ScrollArea>
+              </div>
             </div>
-          </Card>
 
-          <Card className="bg-zinc-900/30 border-zinc-800 p-6">
-            <h4 className="text-sm font-bold text-white mb-6 uppercase tracking-widest flex justify-between items-center">
+            <div className="p-6 rounded-2xl" style={{background:"linear-gradient(160deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%)",backdropFilter:"blur(20px) saturate(160%)",WebkitBackdropFilter:"blur(20px) saturate(160%)",border:"1px solid rgba(255,255,255,0.08)",boxShadow:"0 8px 32px rgba(0,0,0,0.35), 0 1px 0 rgba(255,255,255,0.07) inset"}}>
+              <h4 className="text-sm font-bold text-white mb-6 uppercase tracking-widest flex justify-between items-center">
               Your Library
               <Badge variant="outline" className="text-[10px] h-5">{history.length}</Badge>
             </h4>
@@ -831,8 +837,8 @@ setActiveVersion('v35');
                       className={cn(
                         "p-3 rounded-xl border flex items-center gap-3 transition-all cursor-pointer",
                         currentSong.id === item.id
-                          ? "bg-pink-500/10 border-pink-500/30" 
-                          : "bg-zinc-950 border-zinc-800/50 hover:border-zinc-700"
+                            ? "bg-amber-500/10 border-amber-500/30" 
+                            : "bg-white/[0.03] border-white/[0.06] hover:border-white/[0.12] hover:bg-white/[0.05]"
                       )}
 onClick={() => {
                               if (item.status === 'complete') {
@@ -851,7 +857,7 @@ onClick={() => {
                     >
                       <div className="w-10 h-10 rounded-lg bg-zinc-900 flex items-center justify-center overflow-hidden">
                         {item.status === 'generating' ? (
-                          <Loader2 className="w-5 h-5 animate-spin text-pink-500" />
+                          <Loader2 className="w-5 h-5 animate-spin text-amber-500" />
                         ) : item.imageUrl ? (
                           <img src={item.imageUrl} alt="" className="w-full h-full object-cover" />
                         ) : (
@@ -873,10 +879,10 @@ onClick={() => {
                   ))
                 )}
               </div>
-            </ScrollArea>
-          </Card>
+              </ScrollArea>
+            </div>
+          </div>
         </div>
-      </div>
 
       <input 
         type="file" 
@@ -887,17 +893,17 @@ onClick={() => {
       />
 
       <Dialog open={showVideoDialog} onOpenChange={setShowVideoDialog}>
-        <DialogContent className="bg-zinc-950 border-zinc-800 text-white sm:max-w-[425px]">
+        <DialogContent className="border-white/10 text-white sm:max-w-[425px]" style={{background:"linear-gradient(160deg, rgba(20,20,30,0.97) 0%, rgba(12,12,18,0.99) 100%)",backdropFilter:"blur(30px)",WebkitBackdropFilter:"blur(30px)",boxShadow:"0 25px 80px rgba(0,0,0,0.7), 0 1px 0 rgba(255,255,255,0.08) inset"}}>
           <DialogHeader>
             <DialogTitle className="text-xl font-bold">Generate Lyric Video</DialogTitle>
           </DialogHeader>
           <div className="grid grid-cols-2 gap-4 py-6">
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="flex flex-col items-center gap-4 p-6 rounded-2xl border border-zinc-800 bg-zinc-900/50 hover:bg-zinc-900 hover:border-pink-500/50 transition-all group"
+                className="flex flex-col items-center gap-4 p-6 rounded-2xl border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] hover:border-pink-500/40 transition-all group"
             >
-              <div className="w-12 h-12 rounded-full bg-pink-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
-                <Upload className="w-6 h-6 text-pink-500" />
+              <div className="w-12 h-12 rounded-full bg-amber-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <Upload className="w-6 h-6 text-amber-500" />
               </div>
               <div className="text-center">
                 <div className="text-sm font-bold">Custom Image</div>
@@ -907,7 +913,7 @@ onClick={() => {
 
             <button
               onClick={() => handleGenerateVideo()}
-              className="flex flex-col items-center gap-4 p-6 rounded-2xl border border-zinc-800 bg-zinc-900/50 hover:bg-zinc-900 hover:border-purple-500/50 transition-all group"
+                className="flex flex-col items-center gap-4 p-6 rounded-2xl border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] hover:border-purple-500/40 transition-all group"
             >
               <div className="w-12 h-12 rounded-full bg-purple-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
                 <ImageIcon className="w-6 h-6 text-purple-500" />

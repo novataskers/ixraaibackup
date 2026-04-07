@@ -90,10 +90,12 @@ async function tryGenerateWithKeys(model: string, prompt: string, genre: string,
 export async function POST(req: Request) {
   try {
     const { prompt, genre, energy } = await req.json();
-    const apiKey1 = process.env.KIE_AI_API_KEY;
-    const apiKey2 = process.env.KIE_AI_API_KEY_2;
-
-    const apiKeys = [apiKey1, apiKey2].filter(Boolean) as string[];
+    const apiKeys = [
+      process.env.KIE_AI_API_KEY,
+      process.env.KIE_AI_API_KEY_2,
+      process.env.KIE_AI_API_KEY_3,
+      process.env.KIE_AI_API_KEY_4,
+    ].filter(Boolean) as string[];
 
     if (apiKeys.length === 0) {
       return NextResponse.json({ 

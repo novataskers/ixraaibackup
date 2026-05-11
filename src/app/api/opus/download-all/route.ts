@@ -1,12 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { getSupabaseServer } from "@/lib/supabase-server";
 import archiver from "archiver";
 import { PassThrough, Readable } from "stream";
-
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
 
 export const maxDuration = 300;
 
@@ -18,7 +13,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "No job ID provided" }, { status: 400 });
   }
 
-  const { data: job, error } = await supabase
+  const { data: job, error } = await getSupabaseServer()
     .from("opus_jobs")
     .select("*")
     .eq("id", jobId)

@@ -1,10 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { getSupabaseServer } from "@/lib/supabase-server";
 
 function extractVideoId(url: string): string | null {
   const patterns = [
@@ -68,7 +63,7 @@ export async function POST(request: NextRequest) {
     
     const videoInfo = await getVideoInfo(videoId);
 
-    const { data: job, error } = await supabase
+    const { data: job, error } = await getSupabaseServer()
       .from("opus_jobs")
       .insert({
         youtube_url: youtubeUrl,

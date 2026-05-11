@@ -1,11 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { getSupabaseServer } from "@/lib/supabase-server";
 import { v4 as uuidv4 } from "uuid";
-
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
 
 export async function POST(request: NextRequest) {
   try {
@@ -41,7 +36,7 @@ export async function POST(request: NextRequest) {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    const { data: uploadData, error: uploadError } = await supabase.storage
+    const { data: uploadData, error: uploadError } = await getSupabaseServer().storage
       .from("opus-videos")
       .upload(fileName, buffer, {
         contentType: file.type,
@@ -52,13 +47,13 @@ export async function POST(request: NextRequest) {
       throw new Error(`Upload failed: ${uploadError.message}`);
     }
 
-    const { data: urlData } = supabase.storage
+    const { data: urlData } = getSupabaseServer().storage
       .from("opus-videos")
       .getPublicUrl(fileName);
 
     const fileUrl = urlData.publicUrl;
 
-    const { data: job, error: jobError } = await supabase
+    const { data: job, error: jobError } = await getSupabaseServer()
       .from("opus_jobs")
       .insert({
         file_url: fileUrl,

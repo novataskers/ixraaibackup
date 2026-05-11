@@ -3,12 +3,7 @@ import { spawn, execSync } from "child_process";
 import path from "path";
 import fs from "fs";
 import os from "os";
-import { createClient } from "@supabase/supabase-js";
-
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { getSupabaseServer } from "@/lib/supabase-server";
 
 export const maxDuration = 300;
 
@@ -77,7 +72,7 @@ export async function GET(request: NextRequest) {
   try {
     // 1. Check if clip already exists in Supabase Storage
     console.log(`[download-clip] Checking if ${fileName} exists in ${bucketName}`);
-    const { data: existingFile } = await supabase.storage
+    const { data: existingFile } = await getSupabaseServer().storage
       .from(bucketName)
       .list('', { search: fileName });
 
@@ -234,7 +229,7 @@ export async function GET(request: NextRequest) {
       try {
         // Upload to Supabase Storage
         console.log(`[download-clip] Uploading to Supabase Storage: ${fileName}`);
-        const { error: uploadError } = await supabase.storage
+        const { error: uploadError } = await getSupabaseServer().storage
           .from(bucketName)
           .upload(fileName, fileBuffer, {
             contentType: 'video/mp4',
@@ -270,7 +265,7 @@ export async function GET(request: NextRequest) {
         const cobaltBuffer = Buffer.from(await cobaltRes.arrayBuffer());
         
         console.log(`[download-clip] Uploading Cobalt content to Supabase: ${fileName}`);
-        await supabase.storage
+        await getSupabaseServer().storage
           .from(bucketName)
           .upload(fileName, cobaltBuffer, {
             contentType: 'video/mp4',

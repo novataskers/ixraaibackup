@@ -1,10 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { getSupabaseServer } from "@/lib/supabase-server";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -14,7 +9,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "No job ID provided" }, { status: 400 });
   }
 
-  const { data: job, error } = await supabase
+  const { data: job, error } = await getSupabaseServer()
     .from("opus_jobs")
     .select("*")
     .eq("id", jobId)
@@ -58,7 +53,7 @@ export async function GET(request: NextRequest) {
               };
             });
 
-            await supabase
+            await getSupabaseServer()
               .from("opus_jobs")
               .update({
                 status: "completed",
@@ -83,7 +78,7 @@ export async function GET(request: NextRequest) {
               ? "Insufficient Vizard.ai quota/minutes. Please check your Vizard account."
               : vizardData.message || vizardData.errMsg || "Vizard.ai processing failed";
 
-            await supabase
+            await getSupabaseServer()
               .from("opus_jobs")
               .update({
                 status: "failed",
@@ -102,7 +97,7 @@ export async function GET(request: NextRequest) {
             // Increment progress slowly to show it's not stuck
             if (job.progress < 95) {
               const nextProgress = job.progress + 1;
-              await supabase
+              await getSupabaseServer()
                 .from("opus_jobs")
                 .update({ progress: nextProgress })
                 .eq("id", jobId);

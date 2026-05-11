@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseServer } from '@/lib/supabase-server';
 
 const VOICE_MAP: Record<string, string> = {
   'Serena': '21m00Tcm4TlvDq8ikWAM', // Rachel
@@ -52,10 +52,7 @@ export async function POST(req: Request) {
     const audioBuffer = await response.arrayBuffer();
     
     // Upload to Supabase Storage
-    const supabase = createClient(
-      process.env.SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    const supabase = getSupabaseServer();
 
     const fileName = `voice_${Date.now()}_${Math.random().toString(36).substring(7)}.mp3`;
     const { data: uploadData, error: uploadError } = await supabase.storage
